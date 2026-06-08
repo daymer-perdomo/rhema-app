@@ -1,42 +1,207 @@
 <script setup>
-import VerseCard from './VerseCard.vue'
+import { computed } from 'vue'
 
-defineProps({
-  intro: { type: String, required: true },
-  cards: { type: Array, required: true },
-  closing: { type: String, required: true },
+const props = defineProps({
+  intro:     { type: String,  required: true },
+  cards:     { type: Array,   required: true },
+  closing:   { type: String,  required: true },
+  showSave:  { type: Boolean, default: false },
+  showReset: { type: Boolean, default: true  },
 })
 
-defineEmits(['reset'])
+defineEmits(['reset', 'save'])
+
+const TRANSITIONS = [
+  'La Escritura también dice:',
+  'Y hay más:',
+  'También la Palabra declara:',
+]
+
+const blocks = computed(() => {
+  const list = []
+  list.push({ type: 'ornament-open' })
+  list.push({ type: 'intro' })
+  for (let i = 0; i < props.cards.length; i++) {
+    if (i > 0) list.push({ type: 'transition', cardIndex: i })
+    list.push({ type: 'verse', cardIndex: i })
+    list.push({ type: 'reflection', cardIndex: i })
+  }
+  list.push({ type: 'closing' })
+  list.push({ type: 'ornament-close' })
+  list.push({ type: 'reset' })
+  return list
+})
+
+function delay(idx) {
+  return { animationDelay: `${idx * 160}ms` }
+}
 </script>
 
 <template>
-  <section class="flex flex-col gap-6 animate-fade-in">
-    <p class="text-rhema-text text-base leading-relaxed">{{ intro }}</p>
+  <article class="narrative">
+    <template v-for="(block, idx) in blocks" :key="idx">
 
-    <div class="flex flex-col gap-4">
-      <VerseCard
-        v-for="(card, i) in cards"
-        :key="i"
-        :verse="card.verse"
-        :reference="card.reference"
-        :reflection="card.reflection"
-        :style="{ animationDelay: `${i * 80}ms` }"
-        class="animate-fade-in"
-      />
-    </div>
+      <div
+        v-if="block.type === 'ornament-open' || block.type === 'ornament-close'"
+        class="ornament"
+        :style="delay(idx)"
+      >✦</div>
 
-    <p class="text-rhema-text text-base leading-relaxed border-t border-rhema-border pt-6">
-      {{ closing }}
-    </p>
+      <p
+        v-else-if="block.type === 'intro'"
+        class="prose"
+        :style="delay(idx)"
+      >{{ intro }}</p>
 
-    <div class="flex justify-center pt-2">
-      <button
-        class="text-sm text-rhema-muted hover:text-rhema-gold transition-colors duration-200"
-        @click="$emit('reset')"
+      <p
+        v-else-if="block.type === 'transition'"
+        class="transition-label"
+        :style="delay(idx)"
+      >{{ TRANSITIONS[(block.cardIndex - 1) % TRANSITIONS.length] }}</p>
+
+      <div
+        v-else-if="block.type === 'verse'"
+        class="verse-block"
+        :style="delay(idx)"
       >
-        Hacer otra consulta
-      </button>
-    </div>
-  </section>
+        <blockquote class="verse-text">
+          "{{ cards[block.cardIndex].text ?? cards[block.cardIndex].verse }}"
+        </blockquote>
+        <cite class="verse-ref">— {{ cards[block.cardIndex].reference }}</cite>
+      </div>
+
+      <p
+        v-else-if="block.type === 'reflection'"
+        class="prose"
+        :style="delay(idx)"
+      >{{ cards[block.cardIndex].reflection }}</p>
+
+      <p
+        v-else-if="block.type === 'closing'"
+        class="prose closing"
+        :style="delay(idx)"
+      >{{ closing }}</p>
+
+      <div
+        v-else-if="block.type === 'reset' && (showSave || showReset)"
+        class="reset-row"
+        :style="delay(idx)"
+      >
+        <button v-if="showSave" class="save-diary-btn" @click="$emit('save')">
+          Guardar en diario
+        </button>
+        <button v-if="showReset" class="reset-btn" @click="$emit('reset')">
+          Hacer otra consulta
+        </button>
+      </div>
+
+    </template>
+  </article>
 </template>
+
+<style scoped>
+.narrative {
+  max-width: var(--content-width);
+  margin: 0 auto;
+  padding: 2rem 0 3rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.narrative > * {
+  animation: narrative-appear 0.5s ease both;
+}
+
+.ornament {
+  text-align: center;
+  color: var(--ornament-color);
+  font-size: 1rem;
+  letter-spacing: 0.3em;
+  margin: 1.25rem 0;
+  user-select: none;
+}
+
+.prose {
+  font-size: 1rem;
+  line-height: var(--prose-line-height);
+  color: var(--color-rhema-text);
+  margin-bottom: 1.75rem;
+}
+
+.transition-label {
+  font-style: italic;
+  font-size: 0.875rem;
+  color: var(--color-rhema-muted);
+  margin-bottom: 0.75rem;
+}
+
+.verse-block {
+  margin: 0.25rem 0 1.75rem 0;
+  padding-left: 1.75rem;
+  border-left: var(--verse-border);
+}
+
+.verse-text {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 1.25rem;
+  line-height: var(--verse-line-height);
+  color: var(--color-rhema-text);
+  quotes: none;
+  margin: 0 0 0.5rem 0;
+}
+
+.verse-ref {
+  display: block;
+  font-style: normal;
+  font-size: 0.8125rem;
+  color: var(--color-rhema-gold);
+  letter-spacing: 0.05em;
+}
+
+.closing {
+  font-style: italic;
+  color: var(--color-rhema-muted);
+  border-top: 1px solid var(--color-rhema-border);
+  padding-top: 1.75rem;
+  margin-top: 0.25rem;
+}
+
+.reset-row {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1.5rem;
+  padding-top: 0.5rem;
+}
+
+.save-diary-btn {
+  font-size: 0.8125rem;
+  color: var(--color-rhema-gold);
+  background: none;
+  border: 1px solid rgba(201,168,76,0.3);
+  border-radius: 0.5rem;
+  padding: 0.375rem 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.save-diary-btn:hover {
+  background: rgba(201,168,76,0.08);
+  border-color: var(--color-rhema-gold);
+}
+
+.reset-btn {
+  font-size: 0.8125rem;
+  color: var(--color-rhema-muted);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  transition: color 0.2s ease;
+}
+
+.reset-btn:hover {
+  color: var(--color-rhema-gold);
+}
+</style>

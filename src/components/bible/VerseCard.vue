@@ -13,7 +13,7 @@ defineProps({
       <span class="text-rhema-gold text-sm font-semibold tracking-wide">{{ reference }}</span>
     </header>
 
-    <blockquote class="font-serif italic text-rhema-text text-base leading-relaxed pl-4 border-l border-rhema-border">
+    <blockquote class="font-display italic text-rhema-text text-base leading-relaxed pl-4 border-l border-rhema-border">
       "{{ verse }}"
     </blockquote>
 

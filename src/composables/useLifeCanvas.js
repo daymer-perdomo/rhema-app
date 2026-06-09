@@ -161,15 +161,10 @@ export function useLifeCanvas(canvasRef, entriesGetter, emit) {
       const sx = a.x + ux * gapA, sy = a.y + uy * gapA
       const ex = b.x - ux * gapB, ey = b.y - uy * gapB
 
-      const grad = ctx.createLinearGradient(sx, sy, ex, ey)
-      grad.addColorStop(0, withOpacity(a.color, 0.75))
-      grad.addColorStop(1, withOpacity(b.color, 0.75))
-
       ctx.save()
-      ctx.strokeStyle = grad
+      ctx.strokeStyle = 'rgba(180,180,180,0.22)'
       ctx.lineWidth = 1.5
-      ctx.shadowBlur = 8
-      ctx.shadowColor = withOpacity(a.color, 0.28)
+      ctx.shadowBlur = 0
       ctx.setLineDash([5, 4])
       ctx.lineDashOffset = -dashOffset
       ctx.beginPath()

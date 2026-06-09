@@ -11,21 +11,26 @@ const { saveNewEntry } = useDiary()
 const { sessionPassword, setPassword } = useSession()
 
 // ─── State ────────────────────────────────────────────────────────────────────
-const mode      = ref('idle')   // idle | writing | processing
-const titleEl   = ref(null)
-const bodyEl    = ref(null)
+const mode       = ref('idle')   // idle | writing | processing
+const titleEl    = ref(null)
+const bodyEl     = ref(null)
 const overlayRef = ref(null)
-const titleText = ref('')
-const bodyText  = ref('')
-const charCount = ref(0)
-const showGate  = ref(false)
-const errorMsg  = ref('')
+const titleText  = ref('')
+const bodyText   = ref('')
+const charCount  = ref(0)
+const showGate   = ref(false)
+const errorMsg   = ref('')
 
 // ─── Computed ─────────────────────────────────────────────────────────────────
 const show         = computed(() => mode.value !== 'idle')
 const showSeal     = computed(() => charCount.value > 15)
 const isBodyEmpty  = computed(() => !bodyText.value)
 const isTitleEmpty = computed(() => !titleText.value)
+
+const wordCount = computed(() => {
+  const words = bodyText.value.trim().split(/\s+/).filter(Boolean)
+  return words.length
+})
 
 const today = computed(() => {
   const str = new Intl.DateTimeFormat('es-ES', {
@@ -102,8 +107,8 @@ async function onPassword(password) {
     }
 
     await saveNewEntry({
-      rawContent:    bodyText.value,
-      title:         titleText.value || null,
+      rawContent:     bodyText.value,
+      title:          titleText.value || null,
       emotionContext: emotion,
       verses,
       narrative: { intro: word.intro, cards: word.cards, closing: word.closing },
@@ -180,6 +185,7 @@ defineExpose({ open })
 
         <!-- Page header -->
         <div class="page-header">
+          <span class="page-ornament">✦</span>
           <span class="page-date">{{ today }}</span>
           <div class="page-divider" />
         </div>
@@ -190,7 +196,7 @@ defineExpose({ open })
           contenteditable="true"
           class="title-field"
           :class="{ 'is-empty': isTitleEmpty }"
-          data-placeholder="Un título para este momento  (opcional)"
+          data-placeholder="Título para este momento  (opcional)"
           role="textbox"
           aria-label="Título de la entrada"
           @input="onTitleInput"
@@ -215,13 +221,17 @@ defineExpose({ open })
 
         <!-- Footer -->
         <div class="page-footer">
-          <button class="close-btn" :disabled="mode === 'processing'" @click="close">
-            <X class="w-4 h-4" />
-          </button>
+          <div class="footer-left">
+            <button class="close-btn" :disabled="mode === 'processing'" @click="close" aria-label="Cerrar">
+              <X :size="15" />
+            </button>
+            <span v-if="wordCount > 0" class="word-count">{{ wordCount }} {{ wordCount === 1 ? 'palabra' : 'palabras' }}</span>
+          </div>
+
           <Transition name="seal">
             <button v-if="showSeal" class="seal-btn" :disabled="mode === 'processing'" @click="seal">
-              <Feather class="w-3.5 h-3.5" />
-              <span>Sellar esta entrada</span>
+              <Feather :size="13" />
+              <span>Sellar entrada</span>
             </button>
           </Transition>
         </div>
@@ -246,9 +256,9 @@ defineExpose({ open })
   position: fixed;
   inset: 0;
   z-index: var(--z-modal);
-  background: var(--color-overlay);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
+  background: rgba(6, 6, 6, 0.9);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -256,19 +266,40 @@ defineExpose({ open })
   overflow-y: auto;
 }
 
-/* ─── Page (pergamino) ───────────────────────────────────────────────────────── */
+/* ─── Page ───────────────────────────────────────────────────────────────────── */
 .jw-page {
   position: relative;
   width: 100%;
-  max-width: 640px;
-  min-height: 70vh;
-  padding: 3rem 3.5rem;
-  background: var(--page-bg);
-  border: 1px solid var(--page-border);
-  box-shadow: var(--page-shadow);
-  border-radius: 2px;
+  max-width: 620px;
+  min-height: 68vh;
+  padding: 2.5rem 3.5rem 1.75rem;
+  background: #0c0c0c;
+  border: 1px solid rgba(225, 237, 224, 0.09);
+  border-top: 2px solid rgba(225, 237, 224, 0.2);
+  box-shadow:
+    0 40px 100px rgba(0, 0, 0, 0.85),
+    0 0 0 1px rgba(225, 237, 224, 0.03);
+  border-radius: 3px;
   display: flex;
   flex-direction: column;
+}
+
+/* Subtle left margin line */
+.jw-page::before {
+  content: '';
+  position: absolute;
+  top: 3.5rem;
+  bottom: 3rem;
+  left: 2.75rem;
+  width: 1px;
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    rgba(225, 237, 224, 0.06) 10%,
+    rgba(225, 237, 224, 0.06) 90%,
+    transparent
+  );
+  pointer-events: none;
 }
 
 @media (max-width: 640px) {
@@ -279,7 +310,15 @@ defineExpose({ open })
   .jw-page {
     min-height: 100dvh;
     border-radius: 0;
-    padding: 2.5rem 1.5rem 2rem;
+    border-top: none;
+    border-left: none;
+    border-right: none;
+    padding: 2rem 1.25rem 1.5rem 1.75rem;
+  }
+  .jw-page::before {
+    top: 3rem;
+    bottom: 2.5rem;
+    left: 1.25rem;
   }
 }
 
@@ -287,8 +326,8 @@ defineExpose({ open })
 .proc-overlay {
   position: absolute;
   inset: 0;
-  background: var(--color-overlay-light);
-  border-radius: 2px;
+  background: rgba(6, 6, 6, 0.82);
+  border-radius: 3px;
   z-index: 10;
   display: flex;
   flex-direction: column;
@@ -299,7 +338,7 @@ defineExpose({ open })
 
 .proc-ornament {
   font-size: 1.25rem;
-  color: var(--color-rhema-gold);
+  color: var(--color-accent);
   animation: proc-breathe 2s ease-in-out infinite;
 }
 
@@ -307,7 +346,7 @@ defineExpose({ open })
   font-family: var(--font-display);
   font-style: italic;
   font-size: 1.125rem;
-  color: var(--color-rhema-gold);
+  color: var(--color-accent);
   opacity: 0.9;
 }
 
@@ -320,15 +359,15 @@ defineExpose({ open })
   width: 5px;
   height: 5px;
   border-radius: 50%;
-  background: var(--color-rhema-gold);
+  background: var(--color-accent);
   animation: dot-pulse 1.2s ease-in-out infinite;
 }
 .proc-dot:nth-child(2) { animation-delay: 0.2s; }
 .proc-dot:nth-child(3) { animation-delay: 0.4s; }
 
 @keyframes proc-breathe {
-  0%, 100% { opacity: 0.4; }
-  50%       { opacity: 1;   }
+  0%, 100% { opacity: 0.35; transform: scale(0.95); }
+  50%       { opacity: 1;    transform: scale(1.1);  }
 }
 @keyframes dot-pulse {
   0%, 60%, 100% { opacity: 0.2;  transform: scale(0.8); }
@@ -340,40 +379,59 @@ defineExpose({ open })
   display: flex;
   flex-direction: column;
   align-items: center;
+  gap: 0.4rem;
   margin-bottom: 2rem;
   flex-shrink: 0;
+}
+
+.page-ornament {
+  font-size: 0.75rem;
+  color: var(--color-accent);
+  opacity: 0.45;
+  letter-spacing: 0.2em;
+  animation: proc-breathe 4s ease-in-out infinite;
 }
 
 .page-date {
   font-size: 0.6875rem;
   text-transform: uppercase;
-  letter-spacing: 0.12em;
-  color: var(--color-rhema-gold);
+  letter-spacing: 0.14em;
+  color: var(--color-text-muted);
   opacity: 0.7;
 }
 
 .page-divider {
-  width: 40px;
+  width: 44px;
   height: 1px;
-  background: var(--page-border);
-  margin-top: 1rem;
+  background: linear-gradient(90deg, transparent, rgba(225,237,224,0.12), transparent);
+  margin-top: 0.25rem;
 }
 
 /* ─── Title field ────────────────────────────────────────────────────────────── */
 .title-field {
-  font-family: var(--font-sans);
-  font-size: 0.875rem;
-  color: var(--color-rhema-text);
-  letter-spacing: 0.02em;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 1.25rem;
+  font-weight: 500;
+  color: var(--color-text);
+  letter-spacing: 0.01em;
   outline: none;
   border: none;
   background: transparent;
-  margin-bottom: 1.5rem;
-  min-height: 1.25em;
+  padding-bottom: 0.875rem;
+  border-bottom: 1px solid rgba(225, 237, 224, 0.07);
+  margin-bottom: 1.25rem;
+  min-height: 1.5em;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   flex-shrink: 0;
+  transition: border-color var(--transition-base);
+}
+
+.title-field:focus-within,
+.title-field:not(.is-empty) {
+  border-bottom-color: rgba(225, 237, 224, 0.14);
 }
 
 .title-field.is-empty::before {
@@ -390,7 +448,7 @@ defineExpose({ open })
   font-size: var(--writing-size);
   line-height: var(--writing-leading);
   color: var(--ink-color);
-  caret-color: var(--color-rhema-gold);
+  caret-color: var(--color-accent);
   outline: none;
   border: none;
   background-color: transparent;
@@ -422,6 +480,7 @@ defineExpose({ open })
   color: var(--color-error);
   margin-top: 1rem;
   flex-shrink: 0;
+  line-height: 1.5;
 }
 
 /* ─── Footer ─────────────────────────────────────────────────────────────────── */
@@ -429,42 +488,79 @@ defineExpose({ open })
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-top: 2rem;
-  padding-top: 1.25rem;
+  margin-top: 1.75rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(225, 237, 224, 0.06);
   flex-shrink: 0;
+  gap: 1rem;
+}
+
+.footer-left {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.word-count {
+  font-size: 0.6875rem;
+  letter-spacing: 0.07em;
+  color: var(--color-text-muted);
+  opacity: 0.55;
+  user-select: none;
+  font-variant-numeric: tabular-nums;
 }
 
 .close-btn {
   display: flex;
   align-items: center;
   justify-content: center;
+  width: 32px;
+  height: 32px;
   background: none;
-  border: none;
-  color: var(--color-rhema-muted);
+  border: 1px solid rgba(225, 237, 224, 0.1);
+  border-radius: 50%;
+  color: var(--color-text-muted);
   cursor: pointer;
-  padding: 0.25rem;
-  border-radius: 0.25rem;
-  transition: color var(--transition-fast);
+  flex-shrink: 0;
+  transition: border-color var(--transition-fast), color var(--transition-fast), background var(--transition-fast);
+  touch-action: manipulation;
 }
-.close-btn:hover:not(:disabled) { color: var(--color-rhema-text); }
+.close-btn:hover:not(:disabled) {
+  border-color: rgba(225, 237, 224, 0.25);
+  color: var(--color-text);
+  background: rgba(225, 237, 224, 0.04);
+}
 .close-btn:disabled { opacity: 0.3; cursor: not-allowed; }
 
 .seal-btn {
   display: flex;
   align-items: center;
   gap: 0.4375rem;
-  background: none;
-  border: none;
-  color: var(--color-rhema-gold);
+  background: rgba(225, 237, 224, 0.05);
+  border: 1px solid rgba(225, 237, 224, 0.18);
+  border-radius: var(--r-md);
+  color: var(--color-accent);
   font-family: var(--font-sans);
-  font-size: 0.875rem;
-  letter-spacing: 0.06em;
+  font-size: 0.8125rem;
+  letter-spacing: 0.05em;
+  padding: 0.4375rem 0.875rem;
   cursor: pointer;
-  transition: opacity var(--transition-fast);
-  padding: 0;
+  transition: background var(--transition-fast), border-color var(--transition-fast), box-shadow var(--transition-fast);
+  touch-action: manipulation;
+  white-space: nowrap;
 }
-.seal-btn:hover:not(:disabled) { opacity: 0.75; }
+.seal-btn:hover:not(:disabled) {
+  background: rgba(225, 237, 224, 0.1);
+  border-color: rgba(225, 237, 224, 0.32);
+  box-shadow: 0 0 16px rgba(225, 237, 224, 0.07);
+}
 .seal-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* ─── iOS: prevent zoom on focus (contenteditable with font < 16px) ──────────── */
+@media (max-width: 1023px) {
+  .title-field { font-size: 16px; }
+  .body-field  { font-size: 18px; line-height: 2rem; }
+}
 
 /* ─── Overlay transition ─────────────────────────────────────────────────────── */
 .jw-enter-active { transition: opacity 200ms ease; }
@@ -472,14 +568,11 @@ defineExpose({ open })
 .jw-enter-from,
 .jw-leave-to     { opacity: 0; }
 
-/* Page scale within overlay transition */
 .jw-enter-active .jw-page {
-  transition: transform 320ms cubic-bezier(0.34, 1.56, 0.64, 1),
-              opacity   320ms ease;
+  transition: transform 320ms cubic-bezier(0.34, 1.56, 0.64, 1), opacity 320ms ease;
 }
 .jw-leave-active .jw-page {
-  transition: transform 260ms ease-in,
-              opacity   260ms ease-in;
+  transition: transform 260ms ease-in, opacity 260ms ease-in;
 }
 .jw-enter-from .jw-page,
 .jw-leave-to   .jw-page {
@@ -487,13 +580,13 @@ defineExpose({ open })
   opacity: 0;
 }
 
-/* Seal button appear transition */
+/* Seal button appear */
 .seal-enter-active { transition: opacity 300ms ease, transform 300ms ease; }
 .seal-leave-active { transition: opacity 150ms ease; }
-.seal-enter-from   { opacity: 0; transform: translateY(4px); }
+.seal-enter-from   { opacity: 0; transform: translateX(6px); }
 .seal-leave-to     { opacity: 0; }
 
-/* Processing overlay transition */
+/* Processing overlay */
 .proc-enter-active,
 .proc-leave-active { transition: opacity 200ms ease; }
 .proc-enter-from,

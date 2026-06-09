@@ -112,6 +112,7 @@ const PARTICLES = Array.from({ length: 40 }, (_, i) => ({
 
       <!-- Empty state -->
       <div v-if="!sessions.length" class="empty-state">
+        <!-- Ambient particles -->
         <div
           v-for="p in PARTICLES"
           :key="p.id"
@@ -128,19 +129,27 @@ const PARTICLES = Array.from({ length: 40 }, (_, i) => ({
             '--dy':    p.dy + 'px',
           }"
         />
-        <div class="empty-center">
-          <span class="empty-ornament">✦</span>
-          <h1 class="empty-title">Rhema</h1>
-          <p class="empty-tagline">La Palabra de Dios para tu momento de hoy</p>
-          <p class="empty-description">
-            Comparte lo que llevas en el corazón — una carga, una duda, un miedo,
-            una gratitud — y recibe versículos bíblicos con una reflexión
-            escrita especialmente para ti.
-          </p>
-          <div class="empty-features">
-            <span class="feature-pill">📖 Consulta la Palabra</span>
-            <span class="feature-pill">📔 Diario espiritual</span>
-            <span class="feature-pill">🌿 Tu historia emocional</span>
+
+        <!-- Post card -->
+        <div class="post-card">
+          <div class="post-image-wrap">
+            <img src="/assets/post.webp" alt="" class="post-image" />
+            <div class="post-image-fade" />
+          </div>
+          <div class="post-body">
+            <span class="empty-ornament">✦</span>
+            <h1 class="empty-title">Rhema</h1>
+            <p class="empty-tagline">La Palabra de Dios para tu momento de hoy</p>
+            <p class="empty-description">
+              Comparte lo que llevas en el corazón — una carga, una duda, un miedo,
+              una gratitud — y recibe versículos bíblicos con una reflexión
+              escrita especialmente para ti.
+            </p>
+            <div class="empty-features">
+              <span class="feature-pill">📖 Consulta la Palabra</span>
+              <span class="feature-pill">📔 Diario espiritual</span>
+              <span class="feature-pill">🌿 Tu historia emocional</span>
+            </div>
           </div>
         </div>
       </div>
@@ -292,8 +301,9 @@ const PARTICLES = Array.from({ length: 40 }, (_, i) => ({
   display: flex;
   align-items: center;
   justify-content: center;
-  overflow: hidden;
+  overflow-y: auto;
   pointer-events: none;
+  padding: 2rem 1.25rem 140px;
 }
 
 .particle {
@@ -301,6 +311,7 @@ const PARTICLES = Array.from({ length: 40 }, (_, i) => ({
   border-radius: 50%;
   background: rgba(225, 237, 224, 0.8);
   animation: particle-drift var(--dur) ease-in-out var(--del) infinite;
+  pointer-events: none;
 }
 
 @keyframes particle-drift {
@@ -309,22 +320,62 @@ const PARTICLES = Array.from({ length: 40 }, (_, i) => ({
   100% { transform: translate(0, 0); }
 }
 
-.empty-center {
-  text-align: center;
-  z-index: 1;
+/* ─── Post card ───────────────────────────────────────────────────────────── */
+.post-card {
   position: relative;
-  padding: 0 1.5rem;
-  max-width: 480px;
+  z-index: 1;
+  width: 100%;
+  max-width: 400px;
+  border-radius: 16px;
+  overflow: hidden;
+  background: #111;
+  border: 1px solid rgba(225, 237, 224, 0.09);
+  box-shadow:
+    0 4px 6px  rgba(0, 0, 0, 0.25),
+    0 24px 60px rgba(0, 0, 0, 0.65),
+    0 0 0 1px  rgba(225, 237, 224, 0.04);
+  pointer-events: auto;
+}
+
+.post-image-wrap {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+}
+
+.post-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 40%;
+  display: block;
+}
+
+/* Bottom fade: image bleeds seamlessly into the card body */
+.post-image-fade {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 55%;
+  background: linear-gradient(to bottom, transparent, #111);
+  pointer-events: none;
+}
+
+.post-body {
+  padding: 1rem 1.625rem 1.75rem;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 1.25rem;
+  gap: 0.75rem;
+  text-align: center;
 }
 
 .empty-ornament {
   display: block;
   color: var(--color-accent);
-  font-size: 1.1rem;
+  font-size: 0.9rem;
   animation: pulse-ornament 3s ease-in-out infinite;
 }
 
@@ -336,7 +387,7 @@ const PARTICLES = Array.from({ length: 40 }, (_, i) => ({
 .empty-title {
   font-family: var(--font-display);
   font-style: italic;
-  font-size: 2.75rem;
+  font-size: 2.25rem;
   font-weight: var(--fw-semibold);
   color: var(--color-text);
   line-height: 1;
@@ -346,7 +397,7 @@ const PARTICLES = Array.from({ length: 40 }, (_, i) => ({
 .empty-tagline {
   font-family: var(--font-display);
   font-style: italic;
-  font-size: 1.1rem;
+  font-size: 1rem;
   color: var(--color-accent);
   opacity: 0.85;
   line-height: 1.4;
@@ -354,30 +405,29 @@ const PARTICLES = Array.from({ length: 40 }, (_, i) => ({
 
 .empty-description {
   font-family: var(--font-prose);
-  font-size: 0.9375rem;
+  font-size: 0.875rem;
   color: var(--color-text-muted);
   line-height: 1.7;
-  max-width: 380px;
 }
 
 .empty-features {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: 0.4rem;
   justify-content: center;
   margin-top: 0.25rem;
 }
 
 .feature-pill {
-  font-size: 0.8125rem;
+  font-size: 0.75rem;
   color: var(--color-text-soft);
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid var(--color-border);
   border-radius: 999px;
-  padding: 0.35rem 0.875rem;
+  padding: 0.3rem 0.75rem;
   display: flex;
   align-items: center;
-  gap: 0.375rem;
+  gap: 0.3rem;
 }
 
 /* ─── Sessions ────────────────────────────────────────────────────────────── */

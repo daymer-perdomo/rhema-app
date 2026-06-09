@@ -24,6 +24,6 @@ export async function searchVerses(concern, themes = []) {
   return verses
 }
 
-export async function generateWord(concern, verses, emotionContext) {
-  return callFunction('generate-word', { concern, verses, emotionContext })
+export async function generateWord(concern, verses, emotionContext, userName) {
+  return callFunction('generate-word', { concern, verses, emotionContext, userName: userName || undefined })
 }

@@ -2,6 +2,7 @@ import { ref } from 'vue'
 import { detectEmotion, searchVerses, generateWord } from '@/services/rhema.service'
 import { supabase } from '@/services/supabase'
 import { useAuth } from '@/composables/useAuth'
+import { useProfile } from '@/composables/useProfile'
 
 const CRISIS_MESSAGE = 'Lo que sientes merece atención inmediata. Por favor habla con alguien de confianza o llama a una línea de apoyo.'
 
@@ -11,6 +12,12 @@ const loadingStep = ref(0)   // 0=idle, 1=detectar, 2=buscar, 3=generar
 
 export function useWordOfGod() {
   const { user } = useAuth()
+  const { displayName } = useProfile()
+
+  function resolveUserName() {
+    if (user.value) return displayName.value || null
+    return localStorage.getItem('rhema_guest_name') || null
+  }
 
   async function askWord(concern) {
     loading.value     = true
@@ -32,7 +39,7 @@ export function useWordOfGod() {
       }
 
       loadingStep.value = 3
-      const word = await generateWord(concern, verses, emotion)
+      const word = await generateWord(concern, verses, emotion, resolveUserName())
 
       if (word.crisis) {
         return { error: word.message ?? CRISIS_MESSAGE, crisis: true }
@@ -41,6 +48,10 @@ export function useWordOfGod() {
       const finalResult = { ...word, emotionContext: emotion }
 
       if (user.value) {
+        // Rough token estimate: ~1 token per 4 chars
+        const tokensIn  = Math.round((concern.length + JSON.stringify(verses).length) / 4)
+        const tokensOut = Math.round(((word.intro?.length ?? 0) + (word.closing?.length ?? 0)) / 4)
+
         supabase.from('readings').insert({
           user_id:         user.value.id,
           concern,
@@ -48,6 +59,14 @@ export function useWordOfGod() {
           intro:           word.intro,
           cards:           word.cards,
           closing:         word.closing,
+        }).catch(() => {})
+
+        supabase.from('usage_events').insert({
+          user_id:       user.value.id,
+          event_type:    'question',
+          tokens_input:  tokensIn,
+          tokens_output: tokensOut,
+          emotion:       emotion?.emotion ?? null,
         }).catch(() => {})
       }
 

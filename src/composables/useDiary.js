@@ -1,5 +1,6 @@
 import { ref, computed } from 'vue'
 import { createDiary, getEntries, saveEntry, verifyPassword, findDiaryByUser } from '@/services/diary.service'
+import { supabase } from '@/services/supabase'
 
 const diaryId = ref(localStorage.getItem('rhema_diary_id') || null)
 const hasDiary = computed(() => !!diaryId.value)
@@ -33,6 +34,15 @@ export function useDiary() {
     if (!diaryId.value) return
     const entry = await saveEntry({ diaryId: diaryId.value, ...data })
     await loadEntries()
+    // Log diary save usage event (fire-and-forget)
+    const { data: { user } } = await supabase.auth.getUser()
+    if (user) {
+      supabase.from('usage_events').insert({
+        user_id:    user.id,
+        event_type: 'diary_save',
+        emotion:    data.emotionContext?.emotion ?? null,
+      }).catch(() => {})
+    }
     return entry
   }
 

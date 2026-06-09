@@ -1,12 +1,15 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { CircleUser, LogOut, Loader } from '@lucide/vue'
+import { CircleUser, LogOut, Loader, Check } from '@lucide/vue'
 import { useAuth } from '@/composables/useAuth'
+import { useProfile } from '@/composables/useProfile'
+import { updateFullName } from '@/services/profile.service'
 
 const router = useRouter()
 const route  = useRoute()
 const { user, login, register, logout } = useAuth()
+const { profile, displayName, loadProfile } = useProfile()
 
 const mode     = ref('login') // 'login' | 'register'
 const email    = ref('')
@@ -16,7 +19,30 @@ const errorMsg = ref('')
 const successMsg = ref('')
 
 const isLogin   = computed(() => mode.value === 'login')
-const initials  = computed(() => user.value?.email?.[0]?.toUpperCase() ?? '?')
+const initials  = computed(() => displayName.value?.[0]?.toUpperCase() ?? user.value?.email?.[0]?.toUpperCase() ?? '?')
+
+// ─── Nombre ────────────────────────────────────────────────────────────────────
+const nameInput    = ref('')
+const nameSaving   = ref(false)
+const nameFeedback = ref('')
+
+watch(profile, (p) => { if (p?.full_name) nameInput.value = p.full_name }, { immediate: true })
+
+async function saveName() {
+  const val = nameInput.value.trim()
+  nameSaving.value = true
+  nameFeedback.value = ''
+  try {
+    await updateFullName(val)
+    if (profile.value) profile.value.full_name = val
+    nameFeedback.value = 'Guardado'
+    setTimeout(() => { nameFeedback.value = '' }, 2500)
+  } catch (e) {
+    nameFeedback.value = 'Error al guardar'
+  } finally {
+    nameSaving.value = false
+  }
+}
 
 function switchMode() {
   mode.value = isLogin.value ? 'register' : 'login'
@@ -66,12 +92,33 @@ async function handleLogout() {
         <span class="avatar-initials">{{ initials }}</span>
       </div>
 
-      <h1 class="profile-title">Mi Perfil</h1>
+      <h1 class="profile-title">
+        {{ displayName ? `Hola, ${displayName}` : 'Mi Perfil' }}
+      </h1>
       <p class="profile-email">{{ user.email }}</p>
 
       <div class="divider" />
 
-      <p class="coming-soon">Próximamente más opciones aquí.</p>
+      <!-- Editor de nombre -->
+      <div class="name-section">
+        <label class="name-label">Tu nombre</label>
+        <div class="name-row">
+          <input
+            v-model="nameInput"
+            class="field name-field"
+            placeholder="¿Cómo quieres que te llamemos?"
+            maxlength="60"
+            @keydown.enter.prevent="saveName"
+          />
+          <button class="name-save-btn" :disabled="nameSaving" @click="saveName">
+            <Loader v-if="nameSaving" class="spin" :size="14" />
+            <Check v-else :size="14" />
+          </button>
+        </div>
+        <p v-if="nameFeedback" class="name-feedback">{{ nameFeedback }}</p>
+      </div>
+
+      <div class="divider" />
 
       <button class="logout-btn" @click="handleLogout">
         <LogOut :size="16" />
@@ -314,6 +361,54 @@ async function handleLogout() {
 }
 
 .switch-btn:hover { color: var(--color-rhema-gold-light); }
+
+/* Name editor */
+.name-section {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.name-label {
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--color-rhema-muted);
+  opacity: 0.6;
+  text-align: left;
+}
+
+.name-row {
+  display: flex;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.name-field { flex: 1; }
+
+.name-save-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  border-radius: var(--rhema-radius-sm);
+  border: 1px solid var(--color-rhema-gold);
+  background: none;
+  color: var(--color-rhema-gold);
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+.name-save-btn:hover:not(:disabled) { background: var(--color-rhema-gold); color: var(--color-rhema-dark); }
+.name-save-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.name-feedback {
+  font-size: 0.75rem;
+  color: #6ab58b;
+  text-align: left;
+}
 
 /* Logout */
 .logout-btn {

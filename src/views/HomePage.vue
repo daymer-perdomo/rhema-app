@@ -1,9 +1,11 @@
 <script setup>
-import { ref, computed, nextTick } from 'vue'
+import { ref, computed, nextTick, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
-import { Feather, ArrowUp, Menu, X, BookOpen, BookMarked, GitBranch } from '@lucide/vue'
+import { Feather, ArrowUp, Menu, X, BookOpen, BookMarked, GitBranch, ChevronRight } from '@lucide/vue'
 import { useWordOfGod } from '@/composables/useWordOfGod'
 import { useDiary } from '@/composables/useDiary'
+import { useAuth } from '@/composables/useAuth'
+import { getAppConfig } from '@/services/profile.service'
 import NarrativeResponse  from '@/components/bible/NarrativeResponse.vue'
 import PasswordGate       from '@/components/diary/PasswordGate.vue'
 import SearchingAnimation from '@/components/ui/SearchingAnimation.vue'
@@ -11,8 +13,36 @@ import SearchingAnimation from '@/components/ui/SearchingAnimation.vue'
 const route = useRoute()
 const { loading, loadingStep, askWord } = useWordOfGod()
 const { hasDiary, saveNewEntry } = useDiary()
+const { user } = useAuth()
 
 const showMobileNav = ref(false)
+
+// ─── Nombre invitado ───────────────────────────────────────────────────────────
+const guestName      = ref(localStorage.getItem('rhema_guest_name') || '')
+const guestNameInput = ref('')
+const showNamePrompt = computed(() => !user.value && !guestName.value)
+
+function saveGuestName() {
+  const name = guestNameInput.value.trim()
+  if (!name) { guestName.value = '_skip'; return }
+  guestName.value = name
+  localStorage.setItem('rhema_guest_name', name)
+  guestNameInput.value = ''
+}
+
+function skipGuestName() {
+  guestName.value = '_skip'
+}
+
+// ─── Post dinámico ─────────────────────────────────────────────────────────────
+const postImageUrl = ref('/assets/post.webp')
+
+onMounted(async () => {
+  try {
+    const url = await getAppConfig('homepage_post_url')
+    if (url) postImageUrl.value = url
+  } catch { /* mantener default */ }
+})
 
 // ─── Sessions ─────────────────────────────────────────────────────────────────
 const sessions    = ref([])   // { id, concern, result, error, saved, saveError }
@@ -133,7 +163,7 @@ const PARTICLES = Array.from({ length: 40 }, (_, i) => ({
         <!-- Post card -->
         <div class="post-card">
           <div class="post-image-wrap">
-            <img src="/assets/post.webp" alt="" class="post-image" />
+            <img :src="postImageUrl" alt="" class="post-image" />
             <div class="post-image-fade" />
           </div>
           <div class="post-body">
@@ -194,6 +224,27 @@ const PARTICLES = Array.from({ length: 40 }, (_, i) => ({
 
     <!-- ══ WRITING BAR ════════════════════════════════════════════════════════ -->
     <div class="writing-bar">
+
+      <!-- Prompt nombre invitado -->
+      <Transition name="name-prompt">
+        <div v-if="showNamePrompt" class="name-prompt">
+          <span class="name-prompt-text">¿Cómo te llamas?</span>
+          <input
+            v-model="guestNameInput"
+            class="name-prompt-input"
+            placeholder="Tu nombre"
+            maxlength="40"
+            @keydown.enter.prevent="saveGuestName"
+          />
+          <button class="name-prompt-submit" @click="saveGuestName">
+            <ChevronRight :size="15" />
+          </button>
+          <button class="name-prompt-skip" @click="skipGuestName">
+            <X :size="13" />
+          </button>
+        </div>
+      </Transition>
+
       <div class="writing-bar-inner">
         <!-- Nav toggle — only visible on mobile -->
         <button
@@ -678,4 +729,78 @@ const PARTICLES = Array.from({ length: 40 }, (_, i) => ({
   transform: translateY(100%);
   opacity: 0;
 }
+
+/* ─── Nombre invitado ─────────────────────────────────────────────────────── */
+.name-prompt {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.875rem 0;
+  max-width: 900px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.name-prompt-text {
+  font-family: var(--font-prose);
+  font-style: italic;
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  opacity: 0.75;
+}
+
+.name-prompt-input {
+  flex: 1;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: 0.375rem 0.75rem;
+  font-size: 0.875rem;
+  font-family: var(--font-prose);
+  color: var(--color-text);
+  outline: none;
+  transition: border-color var(--transition-fast);
+  min-width: 0;
+}
+.name-prompt-input:focus { border-color: rgba(225,237,224,0.3); }
+.name-prompt-input::placeholder { color: var(--color-text-muted); opacity: 0.4; font-style: italic; }
+
+.name-prompt-submit {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1px solid var(--color-accent);
+  background: none;
+  color: var(--color-accent);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+.name-prompt-submit:hover { background: var(--color-accent); color: var(--color-bg); }
+
+.name-prompt-skip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: none;
+  background: none;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  flex-shrink: 0;
+  opacity: 0.45;
+  transition: opacity var(--transition-fast);
+}
+.name-prompt-skip:hover { opacity: 0.8; }
+
+.name-prompt-enter-active { transition: opacity 300ms ease, transform 300ms ease; }
+.name-prompt-leave-active { transition: opacity 200ms ease, transform 200ms ease; }
+.name-prompt-enter-from,
+.name-prompt-leave-to { opacity: 0; transform: translateY(6px); }
 </style>

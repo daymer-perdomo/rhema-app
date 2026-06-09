@@ -1,12 +1,14 @@
 <script setup>
 import { useRoute, useRouter } from 'vue-router'
-import { BookOpen, BookMarked, GitBranch, CircleUser } from '@lucide/vue'
+import { BookOpen, BookMarked, GitBranch, CircleUser, ShieldCheck } from '@lucide/vue'
 import AuthPanel from './AuthPanel.vue'
 import { useAuth } from '@/composables/useAuth'
+import { useProfile } from '@/composables/useProfile'
 
 const route  = useRoute()
 const router = useRouter()
 const { user } = useAuth()
+const { isAdmin } = useProfile()
 
 const initials = () => user.value?.email?.[0]?.toUpperCase() ?? '?'
 
@@ -77,6 +79,12 @@ function isActive(to) {
     </nav>
 
     <div class="spacer" />
+
+    <!-- Admin link (admins only) -->
+    <RouterLink v-if="isAdmin" to="/admin" class="nav-item admin-link" :class="{ active: route.path === '/admin' }">
+      <ShieldCheck class="item-icon" :size="16" :stroke-width="1.5" />
+      Admin
+    </RouterLink>
 
     <!-- Profile link -->
     <RouterLink to="/perfil" class="nav-item profile-link" :class="{ active: route.path === '/perfil' }">

@@ -1,8 +1,11 @@
 <script setup>
 import { ref, computed } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { CircleUser, LogOut, Loader } from '@lucide/vue'
 import { useAuth } from '@/composables/useAuth'
 
+const router = useRouter()
+const route  = useRoute()
 const { user, login, register, logout } = useAuth()
 
 const mode     = ref('login') // 'login' | 'register'
@@ -34,6 +37,8 @@ async function submit() {
   try {
     if (isLogin.value) {
       await login(email.value, password.value)
+      const dest = route.query.redirect
+      if (dest) router.push(dest)
     } else {
       await register(email.value, password.value)
       successMsg.value = 'Revisa tu correo para confirmar tu cuenta.'

@@ -205,11 +205,6 @@ function isActive(to) {
   animation: pulse-ornament 3s ease-in-out infinite;
 }
 
-@keyframes pulse-ornament {
-  0%, 100% { opacity: 0.35; transform: scale(1); }
-  50%       { opacity: 0.8;  transform: scale(1.15); }
-}
-
 .logo-text {
   font-family: var(--font-display);
   font-size: 1.5rem;
@@ -217,6 +212,11 @@ function isActive(to) {
   font-style: italic;
   color: var(--color-text);
   letter-spacing: 0.04em;
+}
+
+@keyframes pulse-ornament {
+  0%, 100% { opacity: 0.35; transform: scale(1); }
+  50%       { opacity: 0.8;  transform: scale(1.15); }
 }
 
 /* Dividers */

@@ -2,14 +2,29 @@ import { supabase } from '@/services/supabase'
 import { encrypt, hashPassword } from '@/services/crypto.service'
 
 export async function createDiary({ name = 'Mi Diario', password }) {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('Debes iniciar sesión para crear tu diario.')
   const { data, error } = await supabase
     .from('diaries')
-    .insert({ name, password_hash: hashPassword(password) })
+    .insert({ name, password_hash: hashPassword(password), user_id: user.id })
     .select()
     .single()
   if (error) throw new Error(error.message)
   localStorage.setItem('rhema_diary_id', data.id)
   return data
+}
+
+export async function findDiaryByUser() {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return null
+  const { data, error } = await supabase
+    .from('diaries')
+    .select('id')
+    .eq('user_id', user.id)
+    .order('created_at', { ascending: true })
+    .limit(1)
+  if (error || !data?.length) return null
+  return data[0]
 }
 
 export async function getDiary(diaryId) {

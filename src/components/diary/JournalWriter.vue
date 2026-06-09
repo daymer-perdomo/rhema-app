@@ -3,10 +3,12 @@ import { ref, computed, nextTick, onMounted, onUnmounted } from 'vue'
 import { X, Feather } from '@lucide/vue'
 import { detectEmotion, searchVerses, generateWord } from '@/services/rhema.service'
 import { useDiary } from '@/composables/useDiary'
+import { useSession } from '@/composables/useSession'
 import PasswordGate from './PasswordGate.vue'
 
 const emit = defineEmits(['saved'])
 const { saveNewEntry } = useDiary()
+const { sessionPassword, setPassword } = useSession()
 
 // ─── State ────────────────────────────────────────────────────────────────────
 const mode      = ref('idle')   // idle | writing | processing
@@ -68,13 +70,18 @@ function onBodyInput() {
 // ─── Seal flow ────────────────────────────────────────────────────────────────
 function seal() {
   if (!bodyText.value.trim()) return
-  showGate.value = true
+  if (sessionPassword.value) {
+    onPassword(sessionPassword.value)
+  } else {
+    showGate.value = true
+  }
 }
 
 async function onPassword(password) {
   showGate.value = false
   mode.value = 'processing'
   errorMsg.value = ''
+  setPassword(password)
 
   const CRISIS = 'Lo que sientes merece atención inmediata. Por favor habla con alguien de confianza.'
 

@@ -1,6 +1,5 @@
 <script setup>
 import { computed } from 'vue'
-import { Lock } from '@lucide/vue'
 
 const props = defineProps({
   entry:    { type: Object,  required: true },
@@ -9,211 +8,287 @@ const props = defineProps({
 })
 defineEmits(['open'])
 
-const ROTATIONS = [-2.5, 1.8, -1.2, 2.1, -0.8, 1.5, -2.0, 0.9]
+// Heights / widths for organic variation
+const HEIGHTS = [178, 195, 160, 185, 170, 200, 155, 188, 175, 193]
+const WIDTHS  = [57,  49,  65,  52,  59,  47,  63,  54,  58,  50]
 
+// Colors from main.css emotion tokens
 const EMOTION_COLORS = {
-  tristeza:     'var(--emotion-tristeza)',
-  miedo:        'var(--emotion-miedo)',
-  ansiedad:     'var(--emotion-ansiedad)',
-  soledad:      'var(--emotion-soledad)',
-  ira:          'var(--emotion-ira)',
-  culpa:        'var(--emotion-culpa)',
-  duda_de_fe:   'var(--emotion-duda)',
-  gratitud:     'var(--emotion-gratitud)',
-  paz:          'var(--emotion-paz)',
-  desesperanza: 'var(--emotion-tristeza)',
-  confusión:    'var(--emotion-duda)',
-  vergüenza:    'var(--emotion-culpa)',
+  tristeza:     '#5a7ab0',
+  miedo:        '#7a5a9f',
+  ansiedad:     '#b07a50',
+  soledad:      '#6a8fa8',
+  ira:          '#b05a5a',
+  culpa:        '#7a6a50',
+  duda_de_fe:   '#6a7a8a',
+  gratitud:     '#a8c4a2',
+  paz:          '#6aaa88',
+  desesperanza: '#505a70',
+  confusión:    '#8a7a60',
+  vergüenza:    '#8a5a70',
 }
 
-const EMOTION_LABELS = {
-  tristeza:     'Tristeza',
-  miedo:        'Miedo',
-  ansiedad:     'Ansiedad',
-  gratitud:     'Gratitud',
-  soledad:      'Soledad',
-  duda_de_fe:   'Duda de fe',
-  paz:          'Paz',
-  ira:          'Enojo',
-  culpa:        'Culpa',
-  desesperanza: 'Desesperanza',
-  confusión:    'Confusión',
-  vergüenza:    'Vergüenza',
+// RGB equivalents for rgba() usage in CSS
+const EMOTION_RGB = {
+  tristeza:     '90,122,176',
+  miedo:        '122,90,159',
+  ansiedad:     '176,122,80',
+  soledad:      '106,143,168',
+  ira:          '176,90,90',
+  culpa:        '122,106,80',
+  duda_de_fe:   '106,122,138',
+  gratitud:     '168,196,162',
+  paz:          '106,170,136',
+  desesperanza: '80,90,112',
+  confusión:    '138,122,96',
+  vergüenza:    '138,90,112',
 }
 
-const rotation     = computed(() => ROTATIONS[props.index % ROTATIONS.length])
-const emotionColor = computed(() => EMOTION_COLORS[props.entry.emotion] ?? 'var(--emotion-default)')
-const emotionLabel = computed(() => EMOTION_LABELS[props.entry.emotion] ?? 'Reflexión')
+const EMOTION_ICONS = {
+  tristeza:     '😢',
+  miedo:        '😨',
+  ansiedad:     '😟',
+  soledad:      '😔',
+  ira:          '😤',
+  culpa:        '😞',
+  duda_de_fe:   '🤔',
+  gratitud:     '🙏',
+  paz:          '😌',
+  desesperanza: '💔',
+  confusión:    '😵',
+  vergüenza:    '😳',
+}
 
-const dateLabel = computed(() => {
+const h     = computed(() => HEIGHTS[props.index % HEIGHTS.length])
+const w     = computed(() => WIDTHS[props.index % WIDTHS.length])
+const color = computed(() => EMOTION_COLORS[props.entry.emotion] ?? '#6a7a8a')
+const rgb   = computed(() => EMOTION_RGB[props.entry.emotion]    ?? '106,122,138')
+const icon  = computed(() => EMOTION_ICONS[props.entry.emotion]  ?? '✦')
+
+const shortDate = computed(() => {
   if (!props.entry.entry_date) return ''
-  const d   = new Date(props.entry.entry_date + 'T00:00:00')
-  const str = d.toLocaleDateString('es', { weekday: 'long', day: 'numeric', month: 'long' })
-  return str.charAt(0).toUpperCase() + str.slice(1)
+  const d = new Date(props.entry.entry_date + 'T00:00:00')
+  return d.toLocaleDateString('es', { day: 'numeric', month: 'short' })
 })
+
+const spineStyle = computed(() => ({
+  '--ec':    color.value,
+  '--er':    rgb.value,
+  '--bh':    h.value + 'px',
+  '--bw':    w.value + 'px',
+  '--delay': (props.index * 60) + 'ms',
+}))
 </script>
 
 <template>
   <article
-    class="book-page"
+    class="book-spine"
     :class="{ 'is-active': isActive }"
     :data-entry-id="entry.id"
-    :style="{
-      '--rotation':      rotation + 'deg',
-      '--emotion-color': emotionColor,
-    }"
+    :style="spineStyle"
+    :title="entry.title || 'Entrada del día'"
     @click="$emit('open', entry.id)"
   >
-    <!-- depth: pages stacked behind -->
-    <div class="page-stack page-stack-2" />
-    <div class="page-stack page-stack-1" />
+    <!-- emotion icon -->
+    <span class="spine-icon" aria-hidden="true">{{ icon }}</span>
 
-    <!-- main page face -->
-    <div class="page-front">
-      <div class="page-emotion-line" />
-      <time class="page-date">{{ dateLabel }}</time>
-      <h3 class="page-title">{{ entry.title || 'Entrada del día' }}</h3>
-      <div class="page-ornament">✦</div>
-      <p class="page-meta">{{ emotionLabel }}</p>
-      <Lock class="page-lock" :size="12" />
-    </div>
+    <!-- thin ornamental rule -->
+    <div class="spine-rule" />
+
+    <!-- entry title — reads bottom to top -->
+    <p class="spine-title">{{ entry.title || 'Entrada' }}</p>
+
+    <!-- bottom: ornament + date -->
+    <footer class="spine-footer">
+      <span class="spine-ornament" aria-hidden="true">✦</span>
+      <span class="spine-date">{{ shortDate }}</span>
+    </footer>
   </article>
 </template>
 
 <style scoped>
-.book-page {
+/* ── Book spine ─────────────────────────────────────────────────────────────
+   Left border  = binding (pure emotion color)
+   Background   = emotion color bleeds from binding into dark cloth
+   ::before     = subtle cloth-weave texture overlay
+   ::after      = top-light reflection (ambient sheen)
+   ──────────────────────────────────────────────────────────────────────── */
+.book-spine {
   position: relative;
+  width:    var(--bw, 57px);
+  height:   var(--bh, 178px);
+  flex-shrink: 0;
   cursor: pointer;
-  transform: rotate(var(--rotation));
-  transition: transform var(--transition-slow) cubic-bezier(0.34, 1.56, 0.64, 1),
-              filter     var(--transition-slow) ease;
-  animation: page-appear 500ms ease both;
+  overflow: hidden;
+
+  /* Material layers (bottom to top) */
+  background:
+    /* cloth-weave horizontal grain */
+    repeating-linear-gradient(
+      0deg,
+      transparent 0px, transparent 3px,
+      rgba(0, 0, 0, 0.055) 3px, rgba(0, 0, 0, 0.055) 4px
+    ),
+    /* emotion color bleeds from binding */
+    linear-gradient(
+      to right,
+      rgba(var(--er), 0.32) 0%,
+      rgba(var(--er), 0.10) 40%,
+      rgba(var(--er), 0.02) 75%,
+      transparent 100%
+    ),
+    /* base dark cloth */
+    linear-gradient(180deg, #252525 0%, #1c1c1c 50%, #151515 100%);
+
+  /* Binding strip — left edge */
+  border-left: 7px solid var(--ec);
+  border-radius: 1px 4px 4px 1px;
+
+  /* 3-D depth */
+  box-shadow:
+    /* binding inner glow */
+    inset 12px 0 22px rgba(var(--er), 0.28),
+    /* right-edge page block darkness */
+    inset -2px 0 4px rgba(0, 0, 0, 0.55),
+    /* physical depth shadows */
+    4px 0 14px rgba(0, 0, 0, 0.92),
+    2px 0 5px  rgba(0, 0, 0, 0.7),
+    /* subtle emotion aura */
+    -1px 0 8px rgba(var(--er), 0.15);
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 5px 9px;
+
+  /* Entrance animation */
+  animation-name: book-rise;
+  animation-duration: 420ms;
+  animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+  animation-delay: var(--delay, 0ms);
+  animation-fill-mode: both;
+
+  /* Hover transition */
+  transition:
+    transform 240ms cubic-bezier(0.34, 1.56, 0.64, 1),
+    filter    240ms ease,
+    z-index   0ms;
+  z-index: 1;
 }
 
-.book-page:hover,
-.book-page.is-active {
-  transform: rotate(0deg) translateY(-8px) scale(1.03);
-  filter: drop-shadow(0 20px 40px rgba(0, 0, 0, 0.6));
-  z-index: 10;
-}
-
-/* pages stacked behind */
-.page-stack {
+/* Cloth-surface sheen — top ambient reflection */
+.book-spine::after {
+  content: '';
   position: absolute;
-  inset: 0;
-  border-radius: 2px 6px 6px 2px;
-  background: var(--page-warm);
-  border: 1px solid var(--color-rhema-border);
+  top: 0; left: 0; right: 0;
+  height: 45%;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.07) 0%,
+    rgba(255, 255, 255, 0.01) 60%,
+    transparent 100%
+  );
   pointer-events: none;
 }
 
-.page-stack-1 {
-  transform: rotate(1.5deg) translate(3px, 3px);
-  opacity: 0.55;
+/* ── Hover / active ─────────────────────────────────────────────────────── */
+.book-spine:hover,
+.book-spine.is-active {
+  transform: translateY(-20px) rotate(-0.8deg);
+  z-index: 20;
+  filter:
+    brightness(1.35)
+    saturate(1.3)
+    drop-shadow(0 22px 38px rgba(0, 0, 0, 0.88))
+    drop-shadow(0 8px 16px rgba(var(--er), 0.38));
 }
 
-.page-stack-2 {
-  transform: rotate(3deg) translate(6px, 6px);
-  opacity: 0.3;
+/* ── Icon ───────────────────────────────────────────────────────────────── */
+.spine-icon {
+  font-size: 16px;
+  line-height: 1;
+  flex-shrink: 0;
+  filter: drop-shadow(0 1px 3px rgba(0,0,0,0.5));
 }
 
-/* main page */
-.page-front {
-  position: relative;
-  background: var(--page-warm);
-  border: 1px solid var(--color-rhema-border);
-  border-left: 3px solid var(--page-spine);
-  border-radius: 2px 6px 6px 2px;
-  padding: 1.5rem 1.25rem 1.25rem;
-  min-height: 180px;
+/* ── Ornamental rule ────────────────────────────────────────────────────── */
+.spine-rule {
+  width: 70%;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(var(--er), 0.55) 30%,
+    rgba(var(--er), 0.55) 70%,
+    transparent
+  );
+  flex-shrink: 0;
+  margin: 2px 0;
+}
+
+/* ── Title — vertical, bottom-to-top ───────────────────────────────────── */
+.spine-title {
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  flex: 1;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+
+  /* warm ivory with emotion glow */
+  color: rgba(240, 232, 216, 0.92);
+  text-shadow:
+    0 1px 4px rgba(0, 0, 0, 0.7),
+    0 0 10px rgba(var(--er), 0.22);
+
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-height: 96px;
+  text-align: center;
+  padding: 4px 0;
+}
+
+/* ── Footer ─────────────────────────────────────────────────────────────── */
+.spine-footer {
   display: flex;
   flex-direction: column;
-  gap: 0.45rem;
-  box-shadow: var(--page-shadow-1), var(--page-shadow-2), var(--page-shadow-3);
-  transition: background var(--transition-base), border-color var(--transition-base);
+  align-items: center;
+  gap: 3px;
+  flex-shrink: 0;
 }
 
-.book-page:hover .page-front {
-  background: var(--page-warm-hover);
-  border-color: rgba(201, 168, 76, 0.2);
-  border-left-color: rgba(201, 168, 76, 0.45);
+.spine-ornament {
+  font-size: 0.45rem;
+  color: rgba(var(--er), 0.55);
+  line-height: 1;
 }
 
-.book-page.is-active .page-front {
-  border-color: rgba(201, 168, 76, 0.35);
-  border-left-color: rgba(201, 168, 76, 0.55);
-}
-
-/* emotion colour bar at top */
-.page-emotion-line {
-  position: absolute;
-  top: 0;
-  left: 12px;
-  right: 12px;
-  height: 2px;
-  background: var(--emotion-color, var(--emotion-default));
-  border-radius: 0 0 2px 2px;
-  opacity: 0.65;
-}
-
-.page-date {
-  display: block;
-  font-family: var(--font-body);
-  font-size: 0.58rem;
-  font-weight: var(--fw-medium);
-  letter-spacing: 0.14em;
+.spine-date {
+  font-size: 0.46rem;
+  letter-spacing: 0.07em;
   text-transform: uppercase;
-  color: var(--color-rhema-gold);
-  opacity: 0.7;
-  margin-top: 0.25rem;
+  color: rgba(var(--er), 0.52);
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  white-space: nowrap;
+  line-height: 1;
 }
 
-.page-title {
-  font-family: var(--font-display);
-  font-size: 1rem;
-  font-weight: var(--fw-semibold);
-  font-style: italic;
-  color: var(--color-rhema-text);
-  line-height: 1.35;
-  flex: 1;
-  overflow: hidden;
-  display: -webkit-box;
-  -webkit-line-clamp: 4;
-  -webkit-box-orient: vertical;
-}
-
-.page-ornament {
-  font-size: 0.6rem;
-  color: var(--color-rhema-gold);
-  opacity: 0.3;
-  text-align: center;
-}
-
-.page-meta {
-  font-family: var(--font-body);
-  font-size: 0.58rem;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--color-rhema-muted);
-  opacity: 0.55;
-}
-
-.page-lock {
-  position: absolute;
-  bottom: 1rem;
-  right: 1rem;
-  color: var(--color-rhema-muted);
-  opacity: 0.25;
-}
-
-@keyframes page-appear {
+/* ── Entrance animation ─────────────────────────────────────────────────── */
+@keyframes book-rise {
   from {
     opacity: 0;
-    transform: rotate(var(--rotation)) translateY(20px) scale(0.95);
+    transform: translateY(24px) scaleY(0.92);
+    filter: brightness(0.6);
   }
   to {
     opacity: 1;
-    transform: rotate(var(--rotation)) translateY(0) scale(1);
+    transform: translateY(0) scaleY(1);
+    filter: brightness(1);
   }
 }
 </style>

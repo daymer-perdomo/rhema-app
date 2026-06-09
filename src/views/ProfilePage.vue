@@ -1,9 +1,9 @@
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed } from 'vue'
 import { CircleUser, LogOut, Loader } from '@lucide/vue'
 import { useAuth } from '@/composables/useAuth'
 
-const { user, init, login, register, logout, cleanup } = useAuth()
+const { user, login, register, logout } = useAuth()
 
 const mode     = ref('login') // 'login' | 'register'
 const email    = ref('')
@@ -14,9 +14,6 @@ const successMsg = ref('')
 
 const isLogin   = computed(() => mode.value === 'login')
 const initials  = computed(() => user.value?.email?.[0]?.toUpperCase() ?? '?')
-
-onMounted(() => init())
-onUnmounted(() => cleanup())
 
 function switchMode() {
   mode.value = isLogin.value ? 'register' : 'login'
@@ -175,7 +172,7 @@ async function handleLogout() {
   width: 72px;
   height: 72px;
   border-radius: 50%;
-  background: linear-gradient(135deg, rgba(201,168,76,0.14) 0%, transparent 100%);
+  background: linear-gradient(135deg, rgba(225,237,224,0.14) 0%, transparent 100%);
   border: 1px solid var(--color-rhema-border);
   display: flex;
   align-items: center;

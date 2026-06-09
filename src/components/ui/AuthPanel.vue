@@ -175,7 +175,7 @@ onUnmounted(() => document.removeEventListener('click', onClickOutside))
 
 <style scoped>
 .auth-panel-dropdown {
-  background: linear-gradient(135deg, rgba(201, 168, 76, 0.10) 0%, transparent 50%),
+  background: linear-gradient(135deg, rgba(225, 237, 224, 0.10) 0%, transparent 50%),
               var(--color-rhema-surface);
   border: 1px solid var(--color-rhema-border);
 }

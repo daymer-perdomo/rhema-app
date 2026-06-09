@@ -5,12 +5,14 @@ import { ArrowLeft } from '@lucide/vue'
 import { getEntry } from '@/services/diary.service'
 import { decrypt } from '@/services/crypto.service'
 import { useDiary } from '@/composables/useDiary'
+import { useSession } from '@/composables/useSession'
 import PasswordGate from '@/components/diary/PasswordGate.vue'
 import NarrativeResponse from '@/components/bible/NarrativeResponse.vue'
 
 const route  = useRoute()
 const router = useRouter()
 const { verify } = useDiary()
+const { sessionPassword, setPassword } = useSession()
 
 const entry     = ref(null)
 const narrative = ref(null)
@@ -20,9 +22,16 @@ const gateError = ref('')
 const unlocked  = ref(false)
 
 onMounted(async () => {
-  try { entry.value = await getEntry(route.params.id) }
-  catch { gateError.value = 'No se encontró esta entrada.' }
-  finally { loading.value = false }
+  try {
+    entry.value = await getEntry(route.params.id)
+    if (sessionPassword.value) {
+      await onPassword(sessionPassword.value)
+    }
+  } catch {
+    gateError.value = 'No se encontró esta entrada.'
+  } finally {
+    loading.value = false
+  }
 })
 
 async function onPassword(password) {
@@ -31,6 +40,7 @@ async function onPassword(password) {
   if (!valid) { gateError.value = 'Contraseña incorrecta.'; return }
   const text = decrypt(entry.value.content_encrypted, password)
   if (!text) { gateError.value = 'No se pudo descifrar la entrada.'; return }
+  setPassword(password)
   rawText.value   = text
   narrative.value = entry.value.narrative
   unlocked.value  = true
@@ -93,7 +103,7 @@ function formatDate(s) {
 .entry-title { font-size: 1.5rem; font-weight: var(--fw-semibold); color: var(--color-rhema-text); }
 .emotion-badge {
   display: inline-block;
-  background: rgba(201,168,76,0.1); border: 1px solid rgba(201,168,76,0.2);
+  background: rgba(225,237,224,0.1); border: 1px solid rgba(225,237,224,0.2);
   color: var(--color-rhema-gold); font-size: 0.75rem; padding: 0.25rem 0.75rem;
   border-radius: var(--rhema-radius-full); text-transform: capitalize; letter-spacing: 0.04em;
   width: fit-content;

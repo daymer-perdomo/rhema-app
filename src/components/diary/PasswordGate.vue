@@ -70,7 +70,7 @@ function submit() {
   z-index: var(--z-modal);
 }
 .gate-card {
-  background: linear-gradient(135deg, rgba(201,168,76,0.10) 0%, transparent 50%), var(--color-rhema-surface);
+  background: linear-gradient(135deg, rgba(225,237,224,0.10) 0%, transparent 50%), var(--color-rhema-surface);
   border: 1px solid var(--color-rhema-border);
   border-radius: var(--rhema-radius-lg);
   padding: 2rem;
@@ -79,7 +79,7 @@ function submit() {
 }
 .gate-icon {
   width: 2.5rem; height: 2.5rem; border-radius: 50%;
-  background: rgba(201,168,76,0.12);
+  background: rgba(225,237,224,0.12);
   display: flex; align-items: center; justify-content: center;
   color: var(--color-rhema-gold);
 }

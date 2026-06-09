@@ -121,10 +121,10 @@ function isActive(to) {
     position: fixed;
     top: 0; left: 0; right: 0;
     z-index: var(--z-sidebar);
-    background: rgba(8, 14, 24, 0.92);
+    background: rgba(14, 14, 14, 0.92);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
-    border-bottom: 1px solid var(--color-rhema-border);
+    border-bottom: 1px solid var(--color-border);
   }
 }
 
@@ -132,7 +132,7 @@ function isActive(to) {
   font-family: var(--font-display);
   font-style: italic;
   font-size: 1.25rem;
-  color: var(--color-rhema-text);
+  color: var(--color-text);
   display: flex;
   align-items: center;
   gap: 0.4rem;
@@ -140,7 +140,7 @@ function isActive(to) {
 }
 
 .mobile-header-logo span {
-  color: var(--color-rhema-gold);
+  color: var(--color-accent);
   font-size: 0.8rem;
   font-style: normal;
   animation: pulse-ornament 3s ease-in-out infinite;
@@ -150,26 +150,26 @@ function isActive(to) {
   width: 34px;
   height: 34px;
   border-radius: 50%;
-  border: 1px solid var(--color-rhema-border);
-  background: var(--color-rhema-surface);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   transition: border-color var(--transition-base), color var(--transition-base);
-  color: var(--color-rhema-muted);
+  color: var(--color-text-muted);
 }
 
 .mobile-profile-btn:hover {
-  border-color: rgba(201, 168, 76, 0.4);
-  color: var(--color-rhema-gold);
+  border-color: rgba(225, 237, 224, 0.4);
+  color: var(--color-accent);
 }
 
 .mh-initials {
   font-family: var(--font-display);
   font-weight: var(--fw-semibold);
   font-size: 0.875rem;
-  color: var(--color-rhema-gold);
+  color: var(--color-accent);
   line-height: 1;
 }
 
@@ -180,8 +180,8 @@ function isActive(to) {
   width: 220px;
   display: flex;
   flex-direction: column;
-  background: var(--color-rhema-surface);
-  border-right: 1px solid var(--color-rhema-border);
+  background: var(--color-surface);
+  border-right: 1px solid var(--color-border);
   z-index: var(--z-sidebar);
   overflow: visible;
 }
@@ -200,7 +200,7 @@ function isActive(to) {
 }
 
 .logo-ornament {
-  color: var(--color-rhema-gold);
+  color: var(--color-accent);
   font-size: 0.9rem;
   animation: pulse-ornament 3s ease-in-out infinite;
 }
@@ -215,7 +215,7 @@ function isActive(to) {
   font-size: 1.5rem;
   font-weight: var(--fw-semibold, 600);
   font-style: italic;
-  color: var(--color-rhema-text);
+  color: var(--color-text);
   letter-spacing: 0.04em;
 }
 
@@ -225,8 +225,8 @@ function isActive(to) {
   background: linear-gradient(
     90deg,
     transparent 0%,
-    var(--color-rhema-border) 25%,
-    var(--color-rhema-border) 75%,
+    var(--color-border) 25%,
+    var(--color-border) 75%,
     transparent 100%
   );
   margin: 0.75rem 1.25rem;
@@ -244,7 +244,7 @@ function isActive(to) {
   font-weight: var(--fw-semibold, 600);
   letter-spacing: 0.18em;
   text-transform: uppercase;
-  color: var(--color-rhema-muted);
+  color: var(--color-text-muted);
   opacity: 0.45;
   padding: 0.5rem 1.25rem 0.25rem;
 }
@@ -255,7 +255,7 @@ function isActive(to) {
   font-size: 1.05rem;
   font-weight: 400;
   letter-spacing: 0.03em;
-  color: var(--color-rhema-muted);
+  color: var(--color-text-muted);
   padding: 0.5rem 1.25rem;
   display: flex;
   align-items: center;
@@ -267,15 +267,15 @@ function isActive(to) {
 }
 
 .nav-item:hover {
-  color: var(--color-rhema-text);
+  color: var(--color-text);
   background: rgba(255, 255, 255, 0.03);
 }
 
 .nav-item.active {
-  color: var(--color-rhema-gold);
-  border-left-color: var(--color-rhema-gold);
+  color: var(--color-accent);
+  border-left-color: var(--color-accent);
   font-style: italic;
-  background: linear-gradient(90deg, rgba(201, 168, 76, 0.07) 0%, transparent 100%);
+  background: linear-gradient(90deg, rgba(225, 237, 224, 0.07) 0%, transparent 100%);
 }
 
 .item-icon {
@@ -295,7 +295,7 @@ function isActive(to) {
 /* Auth */
 .auth-wrap {
   padding: 0.75rem 1rem;
-  border-top: 1px solid var(--color-rhema-border);
+  border-top: 1px solid var(--color-border);
   position: relative;
 }
 
@@ -313,7 +313,7 @@ function isActive(to) {
   font-size: 0.6rem;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--color-rhema-muted);
+  color: var(--color-text-muted);
   opacity: 0.3;
   padding: 0.75rem 1.25rem;
 }
@@ -323,10 +323,10 @@ function isActive(to) {
   position: fixed;
   bottom: 0; left: 0; right: 0;
   height: calc(64px + env(safe-area-inset-bottom, 0px));
-  background: rgba(8, 14, 24, 0.97);
+  background: rgba(14, 14, 14, 0.97);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border-top: 1px solid var(--color-rhema-border);
+  border-top: 1px solid var(--color-border);
   display: flex;
   align-items: flex-start;
   z-index: var(--z-sidebar);
@@ -345,14 +345,14 @@ function isActive(to) {
   flex: 1;
   height: 64px;
   padding: 8px 4px;
-  color: var(--color-rhema-muted);
+  color: var(--color-text-muted);
   transition: color 200ms ease;
   text-decoration: none;
   position: relative;
 }
 
 .mobile-item.active {
-  color: var(--color-rhema-gold);
+  color: var(--color-accent);
 }
 
 .mobile-item.active::before {
@@ -362,9 +362,9 @@ function isActive(to) {
   left: 22%;
   right: 22%;
   height: 1.5px;
-  background: var(--color-rhema-gold);
+  background: var(--color-accent);
   border-radius: 0 0 2px 2px;
-  box-shadow: 0 0 8px rgba(201, 168, 76, 0.5);
+  box-shadow: 0 0 8px rgba(225, 237, 224, 0.5);
 }
 
 .mobile-icon {

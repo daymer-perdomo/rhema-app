@@ -9,7 +9,7 @@ import PasswordGate       from '@/components/diary/PasswordGate.vue'
 import SearchingAnimation from '@/components/ui/SearchingAnimation.vue'
 
 const route = useRoute()
-const { loading, error, result, askWord } = useWordOfGod()
+const { loading, loadingStep, askWord } = useWordOfGod()
 const { hasDiary, saveNewEntry } = useDiary()
 
 const showMobileNav = ref(false)
@@ -44,12 +44,12 @@ async function handleAsk() {
   currentConcern.value = ''
   if (textareaRef.value) textareaRef.value.style.height = 'auto'
 
-  await askWord(trimmed)
+  const { result: res, error: err } = await askWord(trimmed)
 
   const sess = sessions.value.find(s => s.id === id)
   if (sess) {
-    sess.result = result.value ?? null
-    sess.error  = error.value  ?? null
+    sess.result = res ?? null
+    sess.error  = err ?? null
   }
 
   await nextTick()
@@ -130,7 +130,18 @@ const PARTICLES = Array.from({ length: 40 }, (_, i) => ({
         />
         <div class="empty-center">
           <span class="empty-ornament">✦</span>
-          <p class="empty-text">¿Qué hay en tu<br>corazón hoy?</p>
+          <h1 class="empty-title">Rhema</h1>
+          <p class="empty-tagline">La Palabra de Dios para tu momento de hoy</p>
+          <p class="empty-description">
+            Comparte lo que llevas en el corazón — una carga, una duda, un miedo,
+            una gratitud — y recibe versículos bíblicos con una reflexión
+            escrita especialmente para ti.
+          </p>
+          <div class="empty-features">
+            <span class="feature-pill">📖 Consulta la Palabra</span>
+            <span class="feature-pill">📔 Diario espiritual</span>
+            <span class="feature-pill">🌿 Tu historia emocional</span>
+          </div>
         </div>
       </div>
 
@@ -169,41 +180,43 @@ const PARTICLES = Array.from({ length: 40 }, (_, i) => ({
 
     <!-- ══ SEARCHING ANIMATION ════════════════════════════════════════════════ -->
     <Transition name="searching">
-      <SearchingAnimation v-if="loading" class="searching-layer" />
+      <SearchingAnimation v-if="loading" :step="loadingStep" class="searching-layer" />
     </Transition>
 
     <!-- ══ WRITING BAR ════════════════════════════════════════════════════════ -->
     <div class="writing-bar">
-      <!-- Nav toggle — only visible on mobile -->
-      <button
-        class="nav-toggle-btn"
-        :class="{ 'is-open': showMobileNav }"
-        aria-label="Navegación"
-        @click="showMobileNav = !showMobileNav"
-      >
-        <X v-if="showMobileNav" :size="18" />
-        <Menu v-else :size="18" />
-      </button>
+      <div class="writing-bar-inner">
+        <!-- Nav toggle — only visible on mobile -->
+        <button
+          class="nav-toggle-btn"
+          :class="{ 'is-open': showMobileNav }"
+          aria-label="Navegación"
+          @click="showMobileNav = !showMobileNav"
+        >
+          <X v-if="showMobileNav" :size="18" />
+          <Menu v-else :size="18" />
+        </button>
 
-      <textarea
-        ref="textareaRef"
-        v-model="currentConcern"
-        placeholder="¿Qué hay en tu corazón hoy?"
-        rows="1"
-        :disabled="loading"
-        @input="adjustHeight"
-        @keydown.meta.enter.prevent="handleAsk"
-        @keydown.ctrl.enter.prevent="handleAsk"
-      />
-      <button
-        class="send-btn"
-        :class="`send-${btnState}`"
-        :disabled="loading || !currentConcern.trim()"
-        @click="handleAsk"
-      >
-        <ArrowUp v-if="btnState === 'active'" class="w-5 h-5" />
-        <Feather v-else class="w-5 h-5" :class="{ 'spin-slow': loading }" />
-      </button>
+        <textarea
+          ref="textareaRef"
+          v-model="currentConcern"
+          placeholder="¿Qué hay en tu corazón hoy?"
+          rows="1"
+          :disabled="loading"
+          @input="adjustHeight"
+          @keydown.meta.enter.prevent="handleAsk"
+          @keydown.ctrl.enter.prevent="handleAsk"
+        />
+        <button
+          class="send-btn"
+          :class="`send-${btnState}`"
+          :disabled="loading || !currentConcern.trim()"
+          @click="handleAsk"
+        >
+          <ArrowUp v-if="btnState === 'active'" class="w-5 h-5" />
+          <Feather v-else class="w-5 h-5" :class="{ 'spin-slow': loading }" />
+        </button>
+      </div>
     </div>
 
     <!-- ══ MOBILE NAV PANEL ══════════════════════════════════════════════════ -->
@@ -259,22 +272,7 @@ const PARTICLES = Array.from({ length: 40 }, (_, i) => ({
   flex-direction: column;
   position: relative;
   overflow: hidden;
-
-  background-color: var(--color-rhema-dark);
-  background-image:
-    repeating-linear-gradient(
-      to bottom,
-      transparent,
-      transparent calc(var(--writing-leading) - 1px),
-      rgba(201, 168, 76, 0.025) calc(var(--writing-leading) - 1px),
-      rgba(201, 168, 76, 0.025) var(--writing-leading)
-    ),
-    linear-gradient(rgba(201, 168, 76, 0.02) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(201, 168, 76, 0.02) 1px, transparent 1px);
-  background-size:
-    100% var(--writing-leading),
-    40px 40px,
-    40px 40px;
+  background-color: var(--color-bg);
 }
 
 /* ─── Content zone ────────────────────────────────────────────────────────── */
@@ -282,7 +280,8 @@ const PARTICLES = Array.from({ length: 40 }, (_, i) => ({
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  padding-bottom: 120px;
+  padding-top: 1rem;
+  padding-bottom: 130px;
   position: relative;
 }
 
@@ -300,7 +299,7 @@ const PARTICLES = Array.from({ length: 40 }, (_, i) => ({
 .particle {
   position: absolute;
   border-radius: 50%;
-  background: rgba(201, 168, 76, 0.8);
+  background: rgba(225, 237, 224, 0.8);
   animation: particle-drift var(--dur) ease-in-out var(--del) infinite;
 }
 
@@ -314,68 +313,121 @@ const PARTICLES = Array.from({ length: 40 }, (_, i) => ({
   text-align: center;
   z-index: 1;
   position: relative;
+  padding: 0 1.5rem;
+  max-width: 480px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.25rem;
 }
 
 .empty-ornament {
   display: block;
-  color: var(--color-rhema-gold);
-  font-size: 1.2rem;
-  margin-bottom: 1.5rem;
+  color: var(--color-accent);
+  font-size: 1.1rem;
   animation: pulse-ornament 3s ease-in-out infinite;
 }
 
 @keyframes pulse-ornament {
   0%, 100% { opacity: 0.3; transform: scale(1); }
-  50%       { opacity: 0.7; transform: scale(1.15); }
+  50%       { opacity: 0.75; transform: scale(1.15); }
 }
 
-.empty-text {
+.empty-title {
   font-family: var(--font-display);
   font-style: italic;
-  font-size: 1.5rem;
-  color: var(--color-rhema-muted);
-  opacity: 0.6;
-  line-height: 1.6;
+  font-size: 2.75rem;
+  font-weight: var(--fw-semibold);
+  color: var(--color-text);
+  line-height: 1;
+  letter-spacing: 0.04em;
+}
+
+.empty-tagline {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 1.1rem;
+  color: var(--color-accent);
+  opacity: 0.85;
+  line-height: 1.4;
+}
+
+.empty-description {
+  font-family: var(--font-prose);
+  font-size: 0.9375rem;
+  color: var(--color-text-muted);
+  line-height: 1.7;
+  max-width: 380px;
+}
+
+.empty-features {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: center;
+  margin-top: 0.25rem;
+}
+
+.feature-pill {
+  font-size: 0.8125rem;
+  color: var(--color-text-soft);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  padding: 0.35rem 0.875rem;
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
 }
 
 /* ─── Sessions ────────────────────────────────────────────────────────────── */
 .session {
-  max-width: var(--content-width);
+  max-width: 900px;
   margin: 0 auto;
-  padding: 0 1rem;
+  padding: 2rem 3rem;
+  width: 100%;
   transition: opacity 0.4s ease;
+}
+
+/* NarrativeResponse fills the session — sin re-centrar dentro */
+.session :deep(.narrative) {
+  max-width: 100%;
+  padding-left: 0;
+  padding-right: 0;
 }
 
 .session-dimmed { opacity: 0.6; }
 
 .session-divider {
   text-align: center;
-  color: var(--color-rhema-gold);
+  color: var(--color-accent);
   opacity: 0.3;
   font-size: 0.9rem;
-  margin: 2rem 0;
+  margin: 1.5rem 0;
 }
 
 .session-error {
-  max-width: 640px;
-  margin: 2rem auto;
   padding: 1.25rem 1.5rem;
-  background: var(--color-rhema-surface);
-  border: 1px solid var(--color-rhema-border);
-  border-radius: 1rem;
-  color: var(--color-rhema-muted);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 0.75rem;
+  color: var(--color-text-muted);
   font-size: 0.9375rem;
   line-height: 1.6;
+}
+
+@media (max-width: 767px) {
+  .session { padding: 1.25rem 0.75rem; }
 }
 
 .save-feedback {
   text-align: center;
   font-size: 0.8125rem;
-  color: var(--color-rhema-muted);
+  color: var(--color-text-muted);
   padding-bottom: 1.5rem;
 }
 
-.save-ok { color: var(--color-rhema-gold); }
+.save-ok { color: var(--color-accent); }
 
 /* ─── Searching layer ─────────────────────────────────────────────────────── */
 .searching-layer {
@@ -394,31 +446,42 @@ const PARTICLES = Array.from({ length: 40 }, (_, i) => ({
   bottom: 0;
   left: 0;
   right: 0;
-  padding: 0.875rem 1rem calc(1.25rem + env(safe-area-inset-bottom, 0px));
+  padding: 0.875rem 0.625rem calc(1.25rem + env(safe-area-inset-bottom, 0px));
   background: linear-gradient(
     to top,
-    rgba(13, 13, 15, 1.00) 0%,
-    rgba(13, 13, 15, 0.95) 70%,
-    rgba(13, 13, 15, 0.00) 100%
+    rgba(14, 14, 14, 1.00) 0%,
+    rgba(14, 14, 14, 0.95) 70%,
+    rgba(14, 14, 14, 0.00) 100%
   );
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
+  z-index: 50;
+}
+
+@media (min-width: 1024px) {
+  .writing-bar { left: 220px; padding-left: 1.5rem; padding-right: 1.5rem; }
+}
+
+.writing-bar-inner {
   display: flex;
   align-items: flex-end;
-  gap: 0.75rem;
-  z-index: 50;
+  gap: 0.625rem;
+  max-width: 900px;
+  margin: 0 auto;
+  width: 100%;
+  padding: 0 0.375rem;
 }
 
 .writing-bar textarea {
   flex: 1;
   background: rgba(255, 255, 255, 0.04);
-  border: 1px solid var(--color-rhema-border);
+  border: 1px solid var(--color-border);
   border-radius: 20px;
   padding: 0.75rem 1.125rem;
-  font-family: var(--font-display);
+  font-family: var(--font-prose);
   font-style: italic;
   font-size: 1rem;
-  color: var(--color-rhema-text);
+  color: var(--color-text);
   line-height: 1.5;
   resize: none;
   outline: none;
@@ -428,7 +491,7 @@ const PARTICLES = Array.from({ length: 40 }, (_, i) => ({
   display: block;
 }
 
-.writing-bar textarea:focus        { border-color: rgba(201, 168, 76, 0.35); }
+.writing-bar textarea:focus        { border-color: rgba(225, 237, 224, 0.35); }
 .writing-bar textarea::placeholder { color: var(--ink-placeholder); font-style: italic; }
 .writing-bar textarea:disabled     { opacity: 0.5; }
 
@@ -443,16 +506,16 @@ const PARTICLES = Array.from({ length: 40 }, (_, i) => ({
   justify-content: center;
   cursor: pointer;
   transition: all 250ms ease;
-  border: 1px solid var(--color-rhema-border);
+  border: 1px solid var(--color-border);
   background: transparent;
-  color: var(--color-rhema-muted);
+  color: var(--color-text-muted);
 }
 
 .send-btn.send-active {
-  background: var(--color-rhema-gold);
-  border-color: var(--color-rhema-gold);
-  color: var(--color-rhema-dark);
-  box-shadow: 0 0 16px rgba(201, 168, 76, 0.3);
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  color: var(--color-bg);
+  box-shadow: 0 0 16px rgba(225, 237, 224, 0.3);
 }
 
 .send-btn.send-loading {
@@ -488,14 +551,14 @@ const PARTICLES = Array.from({ length: 40 }, (_, i) => ({
   flex-shrink: 0;
   border-radius: 50%;
   background: none;
-  border: 1px solid var(--color-rhema-border);
-  color: var(--color-rhema-muted);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-muted);
   cursor: pointer;
   transition: color var(--transition-base), border-color var(--transition-base);
 }
 .nav-toggle-btn.is-open {
-  color: var(--color-rhema-gold);
-  border-color: rgba(201, 168, 76, 0.35);
+  color: var(--color-accent);
+  border-color: rgba(225, 237, 224, 0.35);
 }
 
 @media (max-width: 1023px) {
@@ -508,10 +571,10 @@ const PARTICLES = Array.from({ length: 40 }, (_, i) => ({
   bottom: 0; left: 0; right: 0;
   height: calc(72px + env(safe-area-inset-bottom, 0px));
   padding-bottom: env(safe-area-inset-bottom, 0px);
-  background: rgba(8, 14, 24, 0.97);
+  background: rgba(14, 14, 14, 0.97);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border-top: 1px solid var(--color-rhema-border);
+  border-top: 1px solid var(--color-border);
   display: flex;
   align-items: flex-start;
   z-index: calc(var(--z-sidebar) + 1);
@@ -526,14 +589,14 @@ const PARTICLES = Array.from({ length: 40 }, (_, i) => ({
   flex: 1;
   height: 72px;
   padding: 10px 4px;
-  color: var(--color-rhema-muted);
+  color: var(--color-text-muted);
   text-decoration: none;
   position: relative;
   transition: color var(--transition-base);
 }
 
 .mnp-item.mnp-active {
-  color: var(--color-rhema-gold);
+  color: var(--color-accent);
 }
 
 .mnp-item.mnp-active::before {
@@ -542,9 +605,9 @@ const PARTICLES = Array.from({ length: 40 }, (_, i) => ({
   top: 0;
   left: 22%; right: 22%;
   height: 1.5px;
-  background: var(--color-rhema-gold);
+  background: var(--color-accent);
   border-radius: 0 0 2px 2px;
-  box-shadow: 0 0 8px rgba(201, 168, 76, 0.5);
+  box-shadow: 0 0 8px rgba(225, 237, 224, 0.5);
 }
 
 .mnp-label {

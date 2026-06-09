@@ -122,16 +122,18 @@ function delay(idx) {
 }
 
 .prose {
-  font-size: 1rem;
+  font-family: var(--font-prose);
+  font-size: 1.0625rem;
   line-height: var(--prose-line-height);
-  color: var(--color-rhema-text);
+  color: var(--color-text);
   margin-bottom: 1.75rem;
 }
 
 .transition-label {
+  font-family: var(--font-prose);
   font-style: italic;
-  font-size: 0.875rem;
-  color: var(--color-rhema-muted);
+  font-size: 0.9375rem;
+  color: var(--color-text-muted);
   margin-bottom: 0.75rem;
 }
 
@@ -146,7 +148,7 @@ function delay(idx) {
   font-style: italic;
   font-size: 1.25rem;
   line-height: var(--verse-line-height);
-  color: var(--color-rhema-text);
+  color: var(--verse-text-color);
   quotes: none;
   margin: 0 0 0.5rem 0;
 }
@@ -155,14 +157,15 @@ function delay(idx) {
   display: block;
   font-style: normal;
   font-size: 0.8125rem;
-  color: var(--color-rhema-gold);
+  color: var(--color-accent-mid);
   letter-spacing: 0.05em;
 }
 
 .closing {
+  font-family: var(--font-prose);
   font-style: italic;
-  color: var(--color-rhema-muted);
-  border-top: 1px solid var(--color-rhema-border);
+  color: var(--color-text-muted);
+  border-top: 1px solid var(--color-border);
   padding-top: 1.75rem;
   margin-top: 0.25rem;
 }
@@ -177,9 +180,9 @@ function delay(idx) {
 
 .save-diary-btn {
   font-size: 0.8125rem;
-  color: var(--color-rhema-gold);
+  color: var(--color-accent);
   background: none;
-  border: 1px solid rgba(201,168,76,0.3);
+  border: 1px solid rgba(225, 237, 224, 0.22);
   border-radius: 0.5rem;
   padding: 0.375rem 0.875rem;
   cursor: pointer;
@@ -187,13 +190,13 @@ function delay(idx) {
 }
 
 .save-diary-btn:hover {
-  background: rgba(201,168,76,0.08);
-  border-color: var(--color-rhema-gold);
+  background: rgba(225, 237, 224, 0.06);
+  border-color: var(--color-accent);
 }
 
 .reset-btn {
   font-size: 0.8125rem;
-  color: var(--color-rhema-muted);
+  color: var(--color-text-muted);
   background: none;
   border: none;
   cursor: pointer;
@@ -202,6 +205,6 @@ function delay(idx) {
 }
 
 .reset-btn:hover {
-  color: var(--color-rhema-gold);
+  color: var(--color-accent);
 }
 </style>

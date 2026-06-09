@@ -1,15 +1,17 @@
 <script setup>
-import { ref, nextTick, onMounted, onUnmounted } from 'vue'
+import { ref, watch, nextTick, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { Plus } from '@lucide/vue'
 import { useDiary } from '@/composables/useDiary'
 import { createDiary } from '@/services/diary.service'
+import { useAuth } from '@/composables/useAuth'
 import LifeCanvas    from '@/components/diary/LifeCanvas.vue'
 import JournalWriter from '@/components/diary/JournalWriter.vue'
 import BookGrid      from '@/components/diary/BookGrid.vue'
 
 const router = useRouter()
-const { diaryId, hasDiary, entries, loading, loadEntries } = useDiary()
+const { user } = useAuth()
+const { diaryId, hasDiary, entries, loading, loadEntries, initDiary } = useDiary()
 
 // ─── Responsive ───────────────────────────────────────────────────────────
 const isMobile = ref(window.innerWidth < 1024)
@@ -82,9 +84,18 @@ async function handleCreate() {
 
 // ─── Load ─────────────────────────────────────────────────────────────────
 onMounted(async () => {
+  await initDiary()                          // buscar diario en la nube si no está en localStorage
   if (hasDiary.value) {
     await loadEntries()
     if (!entries.value.length) nextTick(() => openWriter())
+  }
+})
+
+// Si el usuario inicia sesión mientras está en esta página, re-intentar
+watch(user, async (newUser) => {
+  if (newUser && !hasDiary.value) {
+    await initDiary()
+    if (hasDiary.value) await loadEntries()
   }
 })
 </script>
@@ -106,7 +117,24 @@ onMounted(async () => {
 
       <!-- FIRST ACCESS: no diary yet -->
       <template v-if="!hasDiary">
-        <div class="create-panel">
+
+        <!-- No sesión → invitar a iniciar sesión -->
+        <div v-if="!user" class="create-panel">
+          <span class="ornament">✦</span>
+          <p class="create-quote">
+            "Cada día que vives<br>merece ser recordado."
+          </p>
+          <p class="create-note">
+            Inicia sesión para acceder a tu diario espiritual<br>
+            desde cualquier dispositivo.
+          </p>
+          <RouterLink to="/perfil" class="create-btn create-btn--link">
+            Iniciar sesión →
+          </RouterLink>
+        </div>
+
+        <!-- Con sesión pero sin diario → crear -->
+        <div v-else class="create-panel">
           <span class="ornament">✦</span>
           <p class="create-quote">
             "Cada día que vives<br>merece ser recordado."
@@ -116,7 +144,7 @@ onMounted(async () => {
             <input v-model="newPwd"     type="password" placeholder="Contraseña personal"   class="field" />
             <input v-model="newPwdConf" type="password" placeholder="Confirmar contraseña"  class="field" />
             <p class="create-note">
-              Tu contenido se encripta localmente.<br>Nadie más puede leer tu diario.
+              Tu contenido se encripta con tu contraseña.<br>Nadie más puede leer tu diario.
             </p>
             <p v-if="createErr" class="create-err">{{ createErr }}</p>
             <button type="submit" class="create-btn" :disabled="creating">
@@ -124,6 +152,7 @@ onMounted(async () => {
             </button>
           </form>
         </div>
+
       </template>
 
       <!-- HAS DIARY -->
@@ -179,7 +208,9 @@ onMounted(async () => {
 
 .layout.mobile .canvas-area {
   flex: none;
-  height: 260px;
+  max-height: 350px;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 /* ─── Panel ─────────────────────────────────────────────────────────────── */
@@ -271,6 +302,12 @@ onMounted(async () => {
 
 .create-btn:hover:not(:disabled) { background: var(--color-rhema-gold-light); }
 .create-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.create-btn--link {
+  display: inline-block;
+  text-decoration: none;
+  text-align: center;
+}
 
 /* ─── Panel header ──────────────────────────────────────────────────────── */
 .panel-header {

@@ -46,7 +46,9 @@ export function useLifeCanvas(canvasRef, entriesGetter, emit) {
   let logH = 0
   let dpr = 1
   let colors = {}
-  const activeNodeId = ref(null)
+  const activeNodeId  = ref(null)
+  const canvasStyle   = ref({ display: 'block', width: '100%', height: '100%' })
+  const nodesData     = ref([])   // reactive — drives HTML emoji overlay
 
   // ─── Colors ───────────────────────────────────────────────────────────────
   function readColors() {
@@ -75,9 +77,16 @@ export function useLifeCanvas(canvasRef, entriesGetter, emit) {
     }
   }
 
+  function withOpacity(hex, alpha) {
+    if (typeof hex === 'string' && hex.startsWith('#') && hex.length === 7) {
+      return hex + Math.round(alpha * 255).toString(16).padStart(2, '0')
+    }
+    return hex
+  }
+
   function nodeColor(emotion) { return colors.emotions?.[emotion] || colors.gold }
   function nodeSize(intensity) {
-    return { leve: 18, moderada: 22, intensa: 26, crisis: 28 }[intensity] || 20
+    return { leve: 26, moderada: 30, intensa: 34, crisis: 38 }[intensity] || 28
   }
 
   // ─── Particles ────────────────────────────────────────────────────────────
@@ -133,66 +142,64 @@ export function useLifeCanvas(canvasRef, entriesGetter, emit) {
   }
 
   // ─── Draw: life line ──────────────────────────────────────────────────────
+  // Each segment is shortened so it starts/ends at the node edge, not center,
+  // ensuring the line never draws over the emoji icons.
   function drawLifeLine() {
     if (nodes.length < 2) return
-    ctx.save()
-    ctx.strokeStyle = colors.lifeline
-    ctx.lineWidth = 1.5
-    ctx.shadowBlur = 8
-    ctx.shadowColor = colors.lifelineGlow
-    ctx.setLineDash([6, 3])
-    ctx.lineDashOffset = -dashOffset
-    ctx.beginPath()
-    ctx.moveTo(nodes[0].x, nodes[0].y)
-    for (let i = 1; i < nodes.length; i++) {
-      const p = nodes[i - 1], c = nodes[i]
-      ctx.quadraticCurveTo(p.x, p.y, (p.x + c.x) / 2, (p.y + c.y) / 2)
+    for (let i = 0; i < nodes.length - 1; i++) {
+      const a = nodes[i], b = nodes[i + 1]
+
+      // Direction unit vector a → b
+      const dx = b.x - a.x, dy = b.y - a.y
+      const len = Math.sqrt(dx * dx + dy * dy)
+      if (len < 1) continue
+      const ux = dx / len, uy = dy / len
+
+      // Pull endpoints back to the halo edge + small gap
+      const gapA = a.baseSize * 0.62
+      const gapB = b.baseSize * 0.62
+      const sx = a.x + ux * gapA, sy = a.y + uy * gapA
+      const ex = b.x - ux * gapB, ey = b.y - uy * gapB
+
+      const grad = ctx.createLinearGradient(sx, sy, ex, ey)
+      grad.addColorStop(0, withOpacity(a.color, 0.75))
+      grad.addColorStop(1, withOpacity(b.color, 0.75))
+
+      ctx.save()
+      ctx.strokeStyle = grad
+      ctx.lineWidth = 1.5
+      ctx.shadowBlur = 8
+      ctx.shadowColor = withOpacity(a.color, 0.28)
+      ctx.setLineDash([5, 4])
+      ctx.lineDashOffset = -dashOffset
+      ctx.beginPath()
+      ctx.moveTo(sx, sy)
+      ctx.lineTo(ex, ey)
+      ctx.stroke()
+      ctx.restore()
     }
-    ctx.lineTo(nodes[nodes.length - 1].x, nodes[nodes.length - 1].y)
-    ctx.stroke()
-    ctx.restore()
-    dashOffset += 0.5
+    dashOffset += 0.4
   }
 
-  // ─── Draw: nodes ──────────────────────────────────────────────────────────
+  // ─── Draw: nodes (halos only — emojis rendered as HTML overlay) ──────────
   function drawNodes() {
     for (const node of nodes) {
       const highlighted = hoveredNode === node || activeNodeId.value === node.entry.id
       const pulse = Math.sin(time * 0.8 + node.phase) * 1.5
       const size  = node.baseSize + pulse + (highlighted ? 4 : 0)
-      const emoji = EMOTION_EMOJIS[node.entry.emotion] || DEFAULT_EMOJI
 
-      // Glow halo behind emoji
       ctx.save()
-      ctx.shadowBlur = highlighted ? 32 : 16
+      ctx.shadowBlur  = highlighted ? 40 : 20
       ctx.shadowColor = node.color
       ctx.beginPath()
-      ctx.arc(node.x, node.y, size * 0.5, 0, Math.PI * 2)
-      ctx.fillStyle = node.color
-      ctx.globalAlpha = highlighted ? 0.22 : 0.10
+      ctx.arc(node.x, node.y, size * 0.58, 0, Math.PI * 2)
+      ctx.fillStyle   = node.color
+      ctx.globalAlpha = highlighted ? 0.38 : 0.18
       ctx.fill()
       ctx.globalAlpha = 1
       ctx.restore()
 
-      // Emoji
-      ctx.save()
-      if (emoji === DEFAULT_EMOJI) {
-        ctx.font = `${size}px serif`
-        ctx.fillStyle = colors.gold
-        ctx.shadowBlur = 12
-        ctx.shadowColor = colors.gold
-      } else {
-        ctx.font = `${size}px ${EMOJI_FONT}`
-      }
-      ctx.textAlign = 'center'
-      ctx.textBaseline = 'middle'
-      ctx.globalAlpha = highlighted ? 1.0 : 0.88
-      ctx.fillText(emoji, node.x, node.y)
-      ctx.globalAlpha = 1
-      ctx.restore()
-
-      // Store hit radius for click/hover detection
-      node.hitRadius = size * 0.6 + 8
+      node.hitRadius = size * 0.65 + 8
     }
   }
 
@@ -360,17 +367,28 @@ export function useLifeCanvas(canvasRef, entriesGetter, emit) {
     if (rect.width === 0 && rect.height === 0) return
     dpr = window.devicePixelRatio || 1
     logW = rect.width
-    logH = rect.height
+
+    const mobile = logW <= 600
+    if (mobile) {
+      const n = (entriesGetter() || []).length
+      logH = Math.max(260, 60 + n * 90 + 60)
+      canvasStyle.value = { display: 'block', width: '100%', height: `${logH}px` }
+    } else {
+      logH = rect.height
+      canvasStyle.value = { display: 'block', width: '100%', height: '100%' }
+    }
+
     canvas.width  = Math.round(logW * dpr)
     canvas.height = Math.round(logH * dpr)
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
     initParticles()
     nodes = calculateLayout(entriesGetter() || [])
+    nodesData.value = nodes   // sync HTML overlay
   }
 
   // ─── Watch entries ────────────────────────────────────────────────────────
-  watch(entriesGetter, (newEntries) => {
-    nodes = calculateLayout(newEntries || [])
+  watch(entriesGetter, () => {
+    resize() // recalculates height on mobile + layout
   }, { deep: true })
 
   // ─── Public API ───────────────────────────────────────────────────────────
@@ -411,5 +429,5 @@ export function useLifeCanvas(canvasRef, entriesGetter, emit) {
     animId = null
   }
 
-  return { initCanvas, destroyCanvas, highlightNode }
+  return { initCanvas, destroyCanvas, highlightNode, canvasStyle, nodesData }
 }

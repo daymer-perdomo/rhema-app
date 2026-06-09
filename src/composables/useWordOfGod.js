@@ -5,76 +5,62 @@ import { useAuth } from '@/composables/useAuth'
 
 const CRISIS_MESSAGE = 'Lo que sientes merece atención inmediata. Por favor habla con alguien de confianza o llama a una línea de apoyo.'
 
+// Module-level so loading state is shared across instances
+const loading     = ref(false)
+const loadingStep = ref(0)   // 0=idle, 1=detectar, 2=buscar, 3=generar
+
 export function useWordOfGod() {
-  const loading = ref(false)
-  const error = ref(null)
-  const result = ref(null)
-  const emotionContext = ref(null)
-  const crisis = ref(false)
   const { user } = useAuth()
 
   async function askWord(concern) {
-    loading.value = true
-    error.value = null
-    result.value = null
-    emotionContext.value = null
-    crisis.value = false
+    loading.value     = true
+    loadingStep.value = 0
 
     try {
-      // 1. Detect emotion
+      loadingStep.value = 1
       const emotion = await detectEmotion(concern)
-      emotionContext.value = emotion
 
-      // 2. Crisis check
       if (emotion.crisis || emotion.intensity === 'crisis') {
-        crisis.value = true
-        error.value = CRISIS_MESSAGE
-        return
+        return { error: CRISIS_MESSAGE, crisis: true }
       }
 
-      // 3. Search verses using themes from emotion detection
+      loadingStep.value = 2
       const verses = await searchVerses(concern, emotion.themes ?? [])
 
       if (!verses?.length) {
-        error.value = 'No encontré versículos para lo que compartiste. Intenta describir tu situación con otras palabras.'
-        return
+        return { error: 'No encontré versículos para lo que compartiste. Intenta con otras palabras.' }
       }
 
-      // 4. Generate word with emotion context
+      loadingStep.value = 3
       const word = await generateWord(concern, verses, emotion)
 
-      // 5. Crisis flag can also come from generate-word
       if (word.crisis) {
-        crisis.value = true
-        error.value = word.message ?? CRISIS_MESSAGE
-        return
+        return { error: word.message ?? CRISIS_MESSAGE, crisis: true }
       }
 
-      result.value = { ...word, emotionContext: emotion }
+      const finalResult = { ...word, emotionContext: emotion }
 
       if (user.value) {
         supabase.from('readings').insert({
-          user_id: user.value.id,
+          user_id:         user.value.id,
           concern,
           emotion_context: emotion,
-          intro: word.intro,
-          cards: word.cards,
-          closing: word.closing,
-        }).then(() => {})
+          intro:           word.intro,
+          cards:           word.cards,
+          closing:         word.closing,
+        }).catch(() => {})
       }
+
+      return { result: finalResult }
+
     } catch (err) {
-      error.value = err.message ?? 'Ocurrió un error inesperado. Inténtalo de nuevo.'
+      const msg = err.message ?? 'Ocurrió un error inesperado. Inténtalo de nuevo.'
+      return { error: msg }
     } finally {
-      loading.value = false
+      loading.value     = false
+      loadingStep.value = 0
     }
   }
 
-  function reset() {
-    result.value = null
-    error.value = null
-    emotionContext.value = null
-    crisis.value = false
-  }
-
-  return { loading, error, result, emotionContext, crisis, askWord, reset }
+  return { loading, loadingStep, askWord }
 }

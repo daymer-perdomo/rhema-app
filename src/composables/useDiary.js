@@ -1,5 +1,5 @@
 import { ref, computed } from 'vue'
-import { createDiary, getEntries, saveEntry, verifyPassword } from '@/services/diary.service'
+import { createDiary, getEntries, saveEntry, verifyPassword, findDiaryByUser } from '@/services/diary.service'
 
 const diaryId = ref(localStorage.getItem('rhema_diary_id') || null)
 const hasDiary = computed(() => !!diaryId.value)
@@ -41,5 +41,13 @@ export function useDiary() {
     return verifyPassword(diaryId.value, password)
   }
 
-  return { diaryId, hasDiary, entries, loading, create, loadEntries, saveNewEntry, verify }
+  async function initDiary() {
+    const found = await findDiaryByUser()
+    if (found) {
+      diaryId.value = found.id
+      localStorage.setItem('rhema_diary_id', found.id)
+    }
+  }
+
+  return { diaryId, hasDiary, entries, loading, create, loadEntries, saveNewEntry, verify, initDiary }
 }

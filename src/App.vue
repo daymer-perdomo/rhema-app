@@ -1,29 +1,56 @@
 <script setup>
+import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
+import { useAuth } from '@/composables/useAuth'
 import AppSidebar from '@/components/ui/AppSidebar.vue'
+import AppLoader  from '@/components/ui/AppLoader.vue'
 
-const route = useRoute()
+const route  = useRoute()
+const { init } = useAuth()
+
+const appReady  = ref(false)
+
+onMounted(async () => {
+  try {
+    await Promise.all([
+      document.fonts.ready,
+      init(),
+      new Promise(resolve => setTimeout(resolve, 1200)),
+    ])
+  } catch (err) {
+    console.warn('[Rhema] Init warning:', err)
+    await new Promise(resolve => setTimeout(resolve, 3000))
+  } finally {
+    appReady.value = true
+  }
+})
 </script>
 
 <template>
-  <div class="app-root">
-    <AppSidebar />
-    <main class="main-content">
-      <RouterView v-slot="{ Component }">
-        <Transition name="page" mode="out-in">
-          <component :is="Component" :key="route.path" />
-        </Transition>
-      </RouterView>
-    </main>
-  </div>
+  <Transition name="loader">
+    <AppLoader v-if="!appReady" />
+  </Transition>
+
+  <Transition name="app-fade">
+    <div v-if="appReady" class="app-root">
+      <AppSidebar />
+      <main class="main-content">
+        <RouterView v-slot="{ Component }">
+          <Transition name="page" mode="out-in">
+            <component :is="Component" :key="route.path" />
+          </Transition>
+        </RouterView>
+      </main>
+    </div>
+  </Transition>
 </template>
 
 <style scoped>
 .app-root {
   display: flex;
   min-height: 100dvh;
-  background: var(--color-rhema-dark);
-  color: var(--color-rhema-text);
+  background: var(--color-bg);
+  color: var(--color-text);
 }
 
 .main-content {
@@ -35,9 +62,7 @@ const route = useRoute()
 }
 
 @media (min-width: 1024px) {
-  .main-content {
-    margin-left: 220px;
-  }
+  .main-content { margin-left: 220px; }
 }
 
 @media (max-width: 1023px) {
@@ -47,11 +72,28 @@ const route = useRoute()
   }
 }
 
-/* Page transitions */
+/* ── Loader sale ── */
+.loader-leave-active {
+  transition: opacity 600ms ease, transform 600ms ease;
+}
+.loader-leave-to {
+  opacity: 0;
+  transform: scale(1.02);
+}
+
+/* ── App entra ── */
+.app-fade-enter-active {
+  transition: opacity 500ms ease 100ms;
+}
+.app-fade-enter-from {
+  opacity: 0;
+}
+
+/* ── Transición entre páginas ── */
 .page-enter-active,
 .page-leave-active {
-  transition: opacity 250ms ease, transform 250ms ease;
+  transition: opacity 200ms ease;
 }
-.page-enter-from { opacity: 0; transform: translateY(6px); }
-.page-leave-to   { opacity: 0; transform: translateY(-6px); }
+.page-enter-from { opacity: 0; }
+.page-leave-to   { opacity: 0; }
 </style>

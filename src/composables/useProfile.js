@@ -1,6 +1,6 @@
 import { ref, computed } from 'vue'
 import { supabase } from '@/services/supabase'
-import { getMyProfile } from '@/services/profile.service'
+import { getMyProfile, updateFullName } from '@/services/profile.service'
 
 const profile = ref(null)
 const loading  = ref(false)
@@ -22,6 +22,15 @@ export function useProfile() {
     loading.value = true
     try {
       profile.value = await getMyProfile()
+
+      // Si el perfil no tiene nombre y el usuario había dado su nombre como invitado,
+      // guardarlo en la DB y limpiar el localStorage
+      const guestName = localStorage.getItem('rhema_guest_name')
+      if (guestName && guestName !== '_skip' && !profile.value?.full_name?.trim()) {
+        await updateFullName(guestName)
+        profile.value.full_name = guestName
+        localStorage.removeItem('rhema_guest_name')
+      }
     } catch {
       profile.value = null
     } finally {

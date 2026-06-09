@@ -20,6 +20,7 @@ const showMobileNav = ref(false)
 // ─── Nombre invitado ───────────────────────────────────────────────────────────
 const guestName      = ref(localStorage.getItem('rhema_guest_name') || '')
 const guestNameInput = ref('')
+const nameInputRef   = ref(null)
 const showNamePrompt = computed(() => !user.value && !guestName.value)
 
 function saveGuestName() {
@@ -160,26 +161,26 @@ const PARTICLES = Array.from({ length: 40 }, (_, i) => ({
           }"
         />
 
-        <!-- Post card -->
-        <div class="post-card">
-          <div class="post-image-wrap">
-            <img :src="postImageUrl" alt="" class="post-image" />
-            <div class="post-image-fade" />
-          </div>
-          <div class="post-body">
-            <span class="empty-ornament">✦</span>
-            <h1 class="empty-title">Rhema</h1>
-            <p class="empty-tagline">La Palabra de Dios para tu momento de hoy</p>
-            <p class="empty-description">
-              Comparte lo que llevas en el corazón — una carga, una duda, un miedo,
-              una gratitud — y recibe versículos bíblicos con una reflexión
-              escrita especialmente para ti.
-            </p>
-            <div class="empty-features">
-              <span class="feature-pill">📖 Consulta la Palabra</span>
-              <span class="feature-pill">📔 Diario espiritual</span>
-              <span class="feature-pill">🌿 Tu historia emocional</span>
-            </div>
+        <!-- Hero image -->
+        <div class="hero-image-wrap">
+          <img :src="postImageUrl" alt="" class="hero-image" />
+          <div class="hero-image-fade" />
+        </div>
+
+        <!-- Text content -->
+        <div class="hero-body">
+          <span class="empty-ornament">✦</span>
+          <h1 class="empty-title">Rhema</h1>
+          <p class="empty-tagline">La Palabra de Dios para tu momento de hoy</p>
+          <p class="empty-description">
+            Comparte lo que llevas en el corazón — una carga, una duda, un miedo,
+            una gratitud — y recibe versículos bíblicos con una reflexión
+            escrita especialmente para ti.
+          </p>
+          <div class="empty-features">
+            <span class="feature-pill">📖 Consulta la Palabra</span>
+            <span class="feature-pill">📔 Diario espiritual</span>
+            <span class="feature-pill">🌿 Tu historia emocional</span>
           </div>
         </div>
       </div>
@@ -222,62 +223,71 @@ const PARTICLES = Array.from({ length: 40 }, (_, i) => ({
       <SearchingAnimation v-if="loading" :step="loadingStep" class="searching-layer" />
     </Transition>
 
-    <!-- ══ WRITING BAR ════════════════════════════════════════════════════════ -->
-    <div class="writing-bar">
-
-      <!-- Prompt nombre invitado -->
-      <Transition name="name-prompt">
-        <div v-if="showNamePrompt" class="name-prompt">
-          <span class="name-prompt-text">¿Cómo te llamas?</span>
-          <input
-            v-model="guestNameInput"
-            class="name-prompt-input"
-            placeholder="Tu nombre"
-            maxlength="40"
-            @keydown.enter.prevent="saveGuestName"
-          />
-          <button class="name-prompt-submit" @click="saveGuestName">
-            <ChevronRight :size="15" />
-          </button>
-          <button class="name-prompt-skip" @click="skipGuestName">
-            <X :size="13" />
+    <!-- ══ NOMBRE GATE (bloquea el chat hasta que el usuario se presenta) ══════ -->
+    <Transition name="name-gate">
+      <div v-if="showNamePrompt" class="name-gate">
+        <div class="name-gate-card">
+          <span class="name-gate-ornament">✦</span>
+          <p class="name-gate-heading">¿Cómo te llamas?</p>
+          <p class="name-gate-sub">Así podré dirigirme a ti de manera personal</p>
+          <div class="name-gate-row">
+            <input
+              ref="nameInputRef"
+              v-model="guestNameInput"
+              class="name-gate-input"
+              placeholder="Tu nombre"
+              maxlength="40"
+              autofocus
+              @keydown.enter.prevent="saveGuestName"
+            />
+            <button class="name-gate-btn" @click="saveGuestName">
+              <ChevronRight :size="16" />
+            </button>
+          </div>
+          <button class="name-gate-skip" @click="skipGuestName">
+            Prefiero no decirlo
           </button>
         </div>
-      </Transition>
-
-      <div class="writing-bar-inner">
-        <!-- Nav toggle — only visible on mobile -->
-        <button
-          class="nav-toggle-btn"
-          :class="{ 'is-open': showMobileNav }"
-          aria-label="Navegación"
-          @click="showMobileNav = !showMobileNav"
-        >
-          <X v-if="showMobileNav" :size="18" />
-          <Menu v-else :size="18" />
-        </button>
-
-        <textarea
-          ref="textareaRef"
-          v-model="currentConcern"
-          placeholder="¿Qué hay en tu corazón hoy?"
-          rows="1"
-          :disabled="loading"
-          @input="adjustHeight"
-          @keydown.meta.enter.prevent="handleAsk"
-          @keydown.ctrl.enter.prevent="handleAsk"
-        />
-        <button
-          class="send-btn"
-          :class="`send-${btnState}`"
-          :disabled="loading || !currentConcern.trim()"
-          @click="handleAsk"
-        >
-          <ArrowUp v-if="btnState === 'active'" class="w-5 h-5" />
-          <Feather v-else class="w-5 h-5" :class="{ 'spin-slow': loading }" />
-        </button>
       </div>
-    </div>
+    </Transition>
+
+    <!-- ══ WRITING BAR ════════════════════════════════════════════════════════ -->
+    <Transition name="writing-bar-reveal">
+      <div v-if="!showNamePrompt" class="writing-bar">
+        <div class="writing-bar-inner">
+          <!-- Nav toggle — only visible on mobile -->
+          <button
+            class="nav-toggle-btn"
+            :class="{ 'is-open': showMobileNav }"
+            aria-label="Navegación"
+            @click="showMobileNav = !showMobileNav"
+          >
+            <X v-if="showMobileNav" :size="18" />
+            <Menu v-else :size="18" />
+          </button>
+
+          <textarea
+            ref="textareaRef"
+            v-model="currentConcern"
+            placeholder="¿Qué hay en tu corazón hoy?"
+            rows="1"
+            :disabled="loading"
+            @input="adjustHeight"
+            @keydown.meta.enter.prevent="handleAsk"
+            @keydown.ctrl.enter.prevent="handleAsk"
+          />
+          <button
+            class="send-btn"
+            :class="`send-${btnState}`"
+            :disabled="loading || !currentConcern.trim()"
+            @click="handleAsk"
+          >
+            <ArrowUp v-if="btnState === 'active'" class="w-5 h-5" />
+            <Feather v-else class="w-5 h-5" :class="{ 'spin-slow': loading }" />
+          </button>
+        </div>
+      </div>
+    </Transition>
 
     <!-- ══ MOBILE NAV PANEL ══════════════════════════════════════════════════ -->
     <Transition name="nav-panel">
@@ -347,14 +357,11 @@ const PARTICLES = Array.from({ length: 40 }, (_, i) => ({
 
 /* ─── Empty state ─────────────────────────────────────────────────────────── */
 .empty-state {
-  position: absolute;
-  inset: 0;
+  position: relative;
   display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow-y: auto;
+  flex-direction: column;
+  width: 100%;
   pointer-events: none;
-  padding: 2rem 1.25rem 140px;
 }
 
 .particle {
@@ -371,56 +378,47 @@ const PARTICLES = Array.from({ length: 40 }, (_, i) => ({
   100% { transform: translate(0, 0); }
 }
 
-/* ─── Post card ───────────────────────────────────────────────────────────── */
-.post-card {
-  position: relative;
-  z-index: 1;
-  width: 100%;
-  max-width: 400px;
-  border-radius: 16px;
-  overflow: hidden;
-  background: #111;
-  border: 1px solid rgba(225, 237, 224, 0.09);
-  box-shadow:
-    0 4px 6px  rgba(0, 0, 0, 0.25),
-    0 24px 60px rgba(0, 0, 0, 0.65),
-    0 0 0 1px  rgba(225, 237, 224, 0.04);
-  pointer-events: auto;
-}
-
-.post-image-wrap {
+/* ─── Hero image ──────────────────────────────────────────────────────────── */
+.hero-image-wrap {
   position: relative;
   width: 100%;
-  aspect-ratio: 16 / 9;
+  height: 52vw;
+  max-height: 380px;
+  min-height: 200px;
   overflow: hidden;
+  flex-shrink: 0;
 }
 
-.post-image {
+.hero-image {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  object-position: center 40%;
+  object-position: center 35%;
   display: block;
 }
 
-/* Bottom fade: image bleeds seamlessly into the card body */
-.post-image-fade {
+.hero-image-fade {
   position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 55%;
-  background: linear-gradient(to bottom, transparent, #111);
+  inset: 0;
+  background:
+    linear-gradient(to bottom, var(--color-bg) 0%, transparent 30%, transparent 30%),
+    linear-gradient(to top,    var(--color-bg) 0%, transparent 45%);
   pointer-events: none;
 }
 
-.post-body {
-  padding: 1rem 1.625rem 1.75rem;
+/* ─── Hero body ───────────────────────────────────────────────────────────── */
+.hero-body {
+  position: relative;
+  z-index: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.75rem;
   text-align: center;
+  gap: 0.75rem;
+  padding: 0 1.5rem 1.5rem;
+  max-width: 480px;
+  margin: -2.5rem auto 0;
+  pointer-events: auto;
 }
 
 .empty-ornament {
@@ -730,77 +728,125 @@ const PARTICLES = Array.from({ length: 40 }, (_, i) => ({
   opacity: 0;
 }
 
-/* ─── Nombre invitado ─────────────────────────────────────────────────────── */
-.name-prompt {
+/* ─── Nombre gate ─────────────────────────────────────────────────────────── */
+.name-gate {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 0.875rem 1rem calc(1.5rem + env(safe-area-inset-bottom, 0px));
+  background: linear-gradient(
+    to top,
+    rgba(14,14,14,1) 0%,
+    rgba(14,14,14,0.97) 70%,
+    rgba(14,14,14,0) 100%
+  );
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  z-index: 50;
   display: flex;
+  justify-content: center;
+}
+
+@media (min-width: 1024px) {
+  .name-gate { left: 220px; }
+}
+
+.name-gate-card {
+  width: 100%;
+  max-width: 480px;
+  display: flex;
+  flex-direction: column;
   align-items: center;
+  gap: 0.625rem;
+  text-align: center;
+}
+
+.name-gate-ornament {
+  font-size: 0.85rem;
+  color: var(--color-accent);
+  opacity: 0.55;
+  animation: pulse-ornament 3s ease-in-out infinite;
+}
+
+.name-gate-heading {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 1.375rem;
+  font-weight: 500;
+  color: var(--color-text);
+  line-height: 1.2;
+}
+
+.name-gate-sub {
+  font-family: var(--font-prose);
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  opacity: 0.65;
+  line-height: 1.5;
+  margin-bottom: 0.25rem;
+}
+
+.name-gate-row {
+  display: flex;
   gap: 0.5rem;
-  padding: 0.5rem 0.875rem 0;
-  max-width: 900px;
-  margin: 0 auto;
   width: 100%;
 }
 
-.name-prompt-text {
-  font-family: var(--font-prose);
-  font-style: italic;
-  font-size: 0.8125rem;
-  color: var(--color-text-muted);
-  white-space: nowrap;
-  opacity: 0.75;
-}
-
-.name-prompt-input {
+.name-gate-input {
   flex: 1;
-  background: rgba(255,255,255,0.04);
-  border: 1px solid var(--color-border);
-  border-radius: 12px;
-  padding: 0.375rem 0.75rem;
-  font-size: 0.875rem;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid var(--color-border-light);
+  border-radius: 20px;
+  padding: 0.7rem 1.125rem;
   font-family: var(--font-prose);
+  font-size: 1rem;
   color: var(--color-text);
   outline: none;
-  transition: border-color var(--transition-fast);
-  min-width: 0;
+  transition: border-color var(--transition-fast), background var(--transition-fast);
 }
-.name-prompt-input:focus { border-color: rgba(225,237,224,0.3); }
-.name-prompt-input::placeholder { color: var(--color-text-muted); opacity: 0.4; font-style: italic; }
+.name-gate-input:focus {
+  border-color: rgba(225,237,224,0.4);
+  background: rgba(255,255,255,0.07);
+}
+.name-gate-input::placeholder { color: var(--color-text-muted); opacity: 0.45; font-style: italic; }
 
-.name-prompt-submit {
+.name-gate-btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
   border-radius: 50%;
   border: 1px solid var(--color-accent);
-  background: none;
-  color: var(--color-accent);
+  background: var(--color-accent);
+  color: var(--color-bg);
   cursor: pointer;
-  flex-shrink: 0;
-  transition: background var(--transition-fast), color var(--transition-fast);
-}
-.name-prompt-submit:hover { background: var(--color-accent); color: var(--color-bg); }
-
-.name-prompt-skip {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  border: none;
-  background: none;
-  color: var(--color-text-muted);
-  cursor: pointer;
-  flex-shrink: 0;
-  opacity: 0.45;
   transition: opacity var(--transition-fast);
 }
-.name-prompt-skip:hover { opacity: 0.8; }
+.name-gate-btn:hover { opacity: 0.85; }
 
-.name-prompt-enter-active { transition: opacity 300ms ease, transform 300ms ease; }
-.name-prompt-leave-active { transition: opacity 200ms ease, transform 200ms ease; }
-.name-prompt-enter-from,
-.name-prompt-leave-to { opacity: 0; transform: translateY(6px); }
+.name-gate-skip {
+  background: none;
+  border: none;
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  opacity: 0.4;
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  transition: opacity var(--transition-fast);
+  touch-action: manipulation;
+}
+.name-gate-skip:hover { opacity: 0.7; }
+
+/* Transiciones gate */
+.name-gate-enter-active { transition: opacity 350ms ease, transform 350ms cubic-bezier(0.34,1.56,0.64,1); }
+.name-gate-leave-active { transition: opacity 200ms ease, transform 200ms ease; }
+.name-gate-enter-from   { opacity: 0; transform: translateY(20px); }
+.name-gate-leave-to     { opacity: 0; transform: translateY(10px); }
+
+/* Writing bar aparece tras la gate */
+.writing-bar-reveal-enter-active { transition: opacity 400ms ease 100ms, transform 400ms cubic-bezier(0.34,1.2,0.64,1) 100ms; }
+.writing-bar-reveal-enter-from   { opacity: 0; transform: translateY(16px); }
 </style>

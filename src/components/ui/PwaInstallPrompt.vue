@@ -25,6 +25,7 @@ async function install() {
   deferredPrompt.prompt()
   const { outcome } = await deferredPrompt.userChoice
   deferredPrompt = null
+  window.__pwaPrompt = null
   if (outcome === 'accepted') visible.value = false
   else dismiss()
 }
@@ -32,15 +33,15 @@ async function install() {
 function onBeforeInstall(e) {
   e.preventDefault()
   deferredPrompt = e
+  window.__pwaPrompt = e
   if (!isDismissed()) visible.value = true
 }
 
 onMounted(() => {
-  // Already installed as standalone — don't show
   if (window.matchMedia('(display-mode: standalone)').matches) return
   if (isDismissed()) return
 
-  // iOS detection — no beforeinstallprompt on iOS
+  // iOS — no beforeinstallprompt, show manual instructions
   const ua = navigator.userAgent
   if (/iphone|ipad|ipod/i.test(ua) && !/crios|fxios/i.test(ua)) {
     isIos.value = true
@@ -48,6 +49,14 @@ onMounted(() => {
     return
   }
 
+  // Use the event captured in main.js before Vue mounted
+  if (window.__pwaPrompt) {
+    deferredPrompt = window.__pwaPrompt
+    visible.value = true
+    return
+  }
+
+  // Fallback: browser hasn't fired the event yet
   window.addEventListener('beforeinstallprompt', onBeforeInstall)
 })
 

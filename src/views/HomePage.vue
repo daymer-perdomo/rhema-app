@@ -43,6 +43,17 @@ onMounted(async () => {
     const url = await getAppConfig('homepage_post_url')
     if (url) postImageUrl.value = url
   } catch { /* mantener default */ }
+
+  // Auto-show hint on first visit, then hide after 5s
+  if (!localStorage.getItem(HINT_KEY)) {
+    setTimeout(() => {
+      hintOpen.value = true
+      setTimeout(() => {
+        hintOpen.value = false
+        localStorage.setItem(HINT_KEY, '1')
+      }, 5000)
+    }, 1200)
+  }
 })
 
 // ─── Sessions ─────────────────────────────────────────────────────────────────
@@ -121,6 +132,14 @@ async function onSavePassword(password) {
   }
 }
 
+// ─── Hint flotante ────────────────────────────────────────────────────────────
+const HINT_KEY = 'rhema_hint_seen'
+const hintOpen = ref(false)
+
+function toggleHint() {
+  hintOpen.value = !hintOpen.value
+}
+
 // ─── Particles (deterministic pseudo-random) ────────────────────────────────
 const PARTICLES = Array.from({ length: 40 }, (_, i) => ({
   id:       i,
@@ -174,8 +193,8 @@ const PARTICLES = Array.from({ length: 40 }, (_, i) => ({
           <p class="empty-tagline">La Palabra de Dios para tu momento de hoy</p>
           <p class="empty-description">
             Comparte lo que llevas en el corazón — una carga, una duda, un miedo,
-            una gratitud — y recibe versículos bíblicos con una reflexión
-            escrita especialmente para ti.
+            una gratitud — y busquemos juntos qué nos dice la Palabra del Señor
+            para este momento.
           </p>
           <div class="empty-features">
             <span class="feature-pill">📖 Consulta la Palabra</span>
@@ -288,6 +307,19 @@ const PARTICLES = Array.from({ length: 40 }, (_, i) => ({
         </div>
       </div>
     </Transition>
+
+    <!-- ══ CHAT HINT ════════════════════════════════════════════════════════ -->
+    <div v-if="!showNamePrompt" class="hint-wrap">
+      <Transition name="hint-pop">
+        <div v-if="hintOpen" class="hint-bubble" role="tooltip">
+          <p class="hint-body">Cuéntame lo que sientes, sin filtros.</p>
+          <p class="hint-example">"Siento que nadie me entiende y estoy agotado de todo..."</p>
+        </div>
+      </Transition>
+      <button class="hint-btn" :class="{ 'is-active': hintOpen }" @click="toggleHint" aria-label="Ver ejemplo">
+        <span class="hint-ornament">✦</span>
+      </button>
+    </div>
 
     <!-- ══ MOBILE NAV PANEL ══════════════════════════════════════════════════ -->
     <Transition name="nav-panel">
@@ -849,4 +881,85 @@ const PARTICLES = Array.from({ length: 40 }, (_, i) => ({
 /* Writing bar aparece tras la gate */
 .writing-bar-reveal-enter-active { transition: opacity 400ms ease 100ms, transform 400ms cubic-bezier(0.34,1.2,0.64,1) 100ms; }
 .writing-bar-reveal-enter-from   { opacity: 0; transform: translateY(16px); }
+
+/* ─── Chat hint ──────────────────────────────────────────────────────────── */
+.hint-wrap {
+  position: fixed;
+  bottom: calc(84px + env(safe-area-inset-bottom, 0px));
+  left: 1.5rem;
+  z-index: 55;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.5rem;
+  overflow: visible;
+}
+
+@media (min-width: 1024px) {
+  .hint-wrap { left: calc(220px + 2rem); }
+}
+
+.hint-bubble {
+  background: rgba(20, 20, 20, 0.96);
+  border: 1px solid rgba(225, 237, 224, 0.12);
+  border-radius: 14px;
+  padding: 0.75rem 1rem;
+  max-width: 230px;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow: 0 6px 28px rgba(0, 0, 0, 0.55);
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.hint-body {
+  font-size: 0.8125rem;
+  color: rgba(225, 237, 224, 0.65);
+  line-height: 1.5;
+}
+
+.hint-example {
+  font-family: var(--font-prose);
+  font-style: italic;
+  font-size: 0.8125rem;
+  color: rgba(225, 237, 224, 0.9);
+  line-height: 1.55;
+}
+
+.hint-btn {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 1px solid rgba(225, 237, 224, 0.18);
+  background: rgba(225, 237, 224, 0.05);
+  color: rgba(225, 237, 224, 0.7);
+  font-size: 0.75rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color 200ms ease, background 200ms ease;
+  line-height: 1;
+  overflow: visible;
+}
+
+.hint-btn:not(.is-active) {
+  animation: hint-pulse 2.8s ease-in-out infinite;
+}
+
+.hint-btn.is-active {
+  border-color: rgba(225, 237, 224, 0.4);
+  background: rgba(225, 237, 224, 0.1);
+}
+
+@keyframes hint-pulse {
+  0%, 100% { opacity: 0.45; transform: scale(1); }
+  50%       { opacity: 0.95; transform: scale(1.12); }
+}
+
+.hint-pop-enter-active { transition: opacity 240ms ease, transform 240ms cubic-bezier(0.34, 1.56, 0.64, 1); }
+.hint-pop-leave-active { transition: opacity 160ms ease, transform 160ms ease; }
+.hint-pop-enter-from   { opacity: 0; transform: translateY(6px) scale(0.96); }
+.hint-pop-leave-to     { opacity: 0; transform: translateY(4px); }
 </style>

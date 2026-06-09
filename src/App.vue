@@ -3,6 +3,7 @@ import { ref, watch, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAuthStore }    from '@/stores/useAuthStore'
 import { useProfileStore } from '@/stores/useProfileStore'
+import { useDiaryStore }   from '@/stores/useDiaryStore'
 import AppSidebar        from '@/components/ui/AppSidebar.vue'
 import AppLoader         from '@/components/ui/AppLoader.vue'
 import PwaInstallPrompt  from '@/components/ui/PwaInstallPrompt.vue'
@@ -10,12 +11,18 @@ import PwaInstallPrompt  from '@/components/ui/PwaInstallPrompt.vue'
 const route        = useRoute()
 const authStore    = useAuthStore()
 const profileStore = useProfileStore()
+const diaryStore   = useDiaryStore()
 
 const appReady = ref(false)
 
 watch(() => authStore.user, (user, prevUser) => {
-  if (user) profileStore.load(user.id)
-  else profileStore.clear(prevUser?.id)
+  if (user) {
+    profileStore.load(user.id)
+    diaryStore.initDiary(user.id)
+  } else {
+    profileStore.clear(prevUser?.id)
+    diaryStore.reset()
+  }
 })
 
 onMounted(async () => {
@@ -26,7 +33,10 @@ onMounted(async () => {
       new Promise(resolve => setTimeout(resolve, 1200)),
     ])
     // Explicit load for the initial user set during init (watch fires on change, not initial set)
-    if (authStore.user) profileStore.load(authStore.user.id)
+    if (authStore.user) {
+      profileStore.load(authStore.user.id)
+      diaryStore.initDiary(authStore.user.id)
+    }
   } catch (err) {
     console.warn('[Rhema] Init warning:', err)
     await new Promise(resolve => setTimeout(resolve, 3000))

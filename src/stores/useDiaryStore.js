@@ -10,11 +10,18 @@ export const useDiaryStore = defineStore('diary', () => {
   const entries  = ref([])
   const loading  = ref(false)
 
+  // Tracks the in-flight initDiary promise and which user it was last validated for
+  let _initPromise        = null
+  let _validatedForUserId = null
+
   async function create(userId, name, password) {
     loading.value = true
     try {
       const diary = await createDiary({ name, password, userId })
       diaryId.value = diary.id
+      localStorage.setItem('rhema_diary_id', diary.id)
+      _initPromise        = Promise.resolve()
+      _validatedForUserId = userId
     } finally {
       loading.value = false
     }
@@ -43,6 +50,16 @@ export const useDiaryStore = defineStore('diary', () => {
   }
 
   async function saveNewEntry(userId, data) {
+    // Always validate that diaryId belongs to the current user before inserting.
+    // If the stored diary ID hasn't been verified for this user yet (e.g., stale
+    // localStorage from a previous account, or race condition on first load),
+    // run initDiary now to fetch the correct diary from the database.
+    if (userId && _validatedForUserId !== userId) {
+      await initDiary(userId)
+    } else if (_initPromise) {
+      await _initPromise
+    }
+
     if (!diaryId.value) return
 
     const temp = {
@@ -78,16 +95,26 @@ export const useDiaryStore = defineStore('diary', () => {
   }
 
   async function initDiary(userId) {
-    const found = await findDiaryByUser(userId)
-    if (found) {
-      diaryId.value = found.id
-      localStorage.setItem('rhema_diary_id', found.id)
-    }
+    _initPromise = (async () => {
+      const found = await findDiaryByUser(userId)
+      if (found) {
+        diaryId.value = found.id
+        localStorage.setItem('rhema_diary_id', found.id)
+      } else {
+        // No diary for this user — clear any stale value from a different account
+        diaryId.value = null
+        localStorage.removeItem('rhema_diary_id')
+      }
+      _validatedForUserId = userId
+    })()
+    await _initPromise
   }
 
   function reset() {
-    diaryId.value = null
-    entries.value = []
+    diaryId.value       = null
+    entries.value       = []
+    _initPromise        = null
+    _validatedForUserId = null
     localStorage.removeItem('rhema_diary_id')
   }
 

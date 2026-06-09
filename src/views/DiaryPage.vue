@@ -3,7 +3,6 @@ import { ref, watch, nextTick, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { Plus, Eye, EyeOff, BookOpen, Lock } from '@lucide/vue'
 import { useDiary } from '@/composables/useDiary'
-import { createDiary } from '@/services/diary.service'
 import { useAuth } from '@/composables/useAuth'
 import LifeCanvas    from '@/components/diary/LifeCanvas.vue'
 import JournalWriter from '@/components/diary/JournalWriter.vue'
@@ -11,7 +10,7 @@ import BookGrid      from '@/components/diary/BookGrid.vue'
 
 const router = useRouter()
 const { user } = useAuth()
-const { diaryId, hasDiary, entries, loading, loadEntries, initDiary } = useDiary()
+const { diaryId, hasDiary, entries, loading, create, loadEntries, initDiary } = useDiary()
 
 // ─── Responsive ───────────────────────────────────────────────────────────
 const isMobile = ref(window.innerWidth < 1024)
@@ -72,7 +71,7 @@ async function handleCreate() {
   if (newPwd.value !== newPwdConf.value) { createErr.value = 'Las contraseñas no coinciden.'; return }
   creating.value = true
   try {
-    await createDiary({ name: newName.value || 'Mi Diario', password: newPwd.value })
+    await create(newName.value || 'Mi Diario', newPwd.value)
     await loadEntries()
     nextTick(() => openWriter())
   } catch (e) {

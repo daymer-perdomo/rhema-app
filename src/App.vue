@@ -2,8 +2,9 @@
 import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAuth } from '@/composables/useAuth'
-import AppSidebar from '@/components/ui/AppSidebar.vue'
-import AppLoader  from '@/components/ui/AppLoader.vue'
+import AppSidebar        from '@/components/ui/AppSidebar.vue'
+import AppLoader         from '@/components/ui/AppLoader.vue'
+import PwaInstallPrompt  from '@/components/ui/PwaInstallPrompt.vue'
 
 const route  = useRoute()
 const { init } = useAuth()
@@ -34,6 +35,7 @@ onMounted(async () => {
   <Transition name="app-fade">
     <div v-if="appReady" class="app-root">
       <AppSidebar />
+      <PwaInstallPrompt />
       <main class="main-content">
         <RouterView v-slot="{ Component }">
           <Transition name="page" mode="out-in">

@@ -24,13 +24,13 @@ export default defineConfig({
         icons: [
           {
             src: '/assets/logo-x1.png',
-            sizes: '1254x1254',
+            sizes: '192x192 512x512 1254x1254',
             type: 'image/png',
             purpose: 'any',
           },
           {
             src: '/assets/logo-x2.png',
-            sizes: '1254x1254',
+            sizes: '192x192 512x512 1254x1254',
             type: 'image/png',
             purpose: 'maskable',
           },

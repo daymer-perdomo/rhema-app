@@ -16,16 +16,19 @@ const COLORS = {
   duda_de_fe:'var(--emotion-duda)', gratitud:'var(--emotion-gratitud)',
   paz:'var(--emotion-paz)', desesperanza:'var(--emotion-tristeza)',
   confusión:'var(--emotion-duda)', vergüenza:'var(--emotion-culpa)',
+  amor:'var(--emotion-amor)',
 }
 const EMOJIS = {
   tristeza:'😢', miedo:'😨', ansiedad:'😟', soledad:'😔',
   ira:'😤', culpa:'😞', duda_de_fe:'🤔', gratitud:'🙏',
   paz:'😌', desesperanza:'💔', confusión:'😵', vergüenza:'😳',
+  amor:'🩷',
 }
 const LABELS = {
   tristeza:'Tristeza', miedo:'Miedo', ansiedad:'Ansiedad', soledad:'Soledad',
   ira:'Enojo', culpa:'Culpa', duda_de_fe:'Duda de fe', gratitud:'Gratitud',
   paz:'Paz', desesperanza:'Desesperanza', confusión:'Confusión', vergüenza:'Vergüenza',
+  amor:'Amor',
 }
 const OPACITY = { leve: 0.4, moderada: 0.7, intensa: 1.0, crisis: 1.0 }
 

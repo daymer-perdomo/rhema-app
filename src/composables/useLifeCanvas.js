@@ -13,6 +13,7 @@ const EMOTION_EMOJIS = {
   desesperanza: '💔',
   confusión:    '😵',
   vergüenza:    '😳',
+  amor:         '🩷',
 }
 const DEFAULT_EMOJI = '✦'
 
@@ -29,6 +30,7 @@ const EMOTION_LABELS = {
   desesperanza: 'Desesperanza',
   confusión:    'Confusión',
   vergüenza:    'Vergüenza',
+  amor:         'Amor',
 }
 
 const EMOJI_FONT = '"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",serif'
@@ -73,6 +75,7 @@ export function useLifeCanvas(canvasRef, entriesGetter, emit) {
         desesperanza:get('--emotion-tristeza',  '#5b8dd9'),
         confusión:   get('--emotion-duda',      '#7a8fa6'),
         vergüenza:   get('--emotion-culpa',     '#8b7355'),
+        amor:        get('--emotion-amor',      '#c4789a'),
       },
     }
   }

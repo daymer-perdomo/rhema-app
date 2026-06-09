@@ -14,6 +14,7 @@ const EMOTION_COLORS = {
   desesperanza:'var(--emotion-tristeza)',
   confusión:   'var(--emotion-duda)',
   vergüenza:   'var(--emotion-culpa)',
+  amor:        'var(--emotion-amor)',
 }
 
 const INTENSITY_OPACITY = { leve: 0.4, moderada: 0.7, intensa: 1.0, crisis: 1.0 }

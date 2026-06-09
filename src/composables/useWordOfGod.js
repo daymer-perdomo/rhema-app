@@ -52,22 +52,22 @@ export function useWordOfGod() {
         const tokensIn  = Math.round((concern.length + JSON.stringify(verses).length) / 4)
         const tokensOut = Math.round(((word.intro?.length ?? 0) + (word.closing?.length ?? 0)) / 4)
 
-        supabase.from('readings').insert({
+        void Promise.resolve(supabase.from('readings').insert({
           user_id:         user.value.id,
           concern,
           emotion_context: emotion,
           intro:           word.intro,
           cards:           word.cards,
           closing:         word.closing,
-        }).catch(() => {})
+        })).catch(() => {})
 
-        supabase.from('usage_events').insert({
+        void Promise.resolve(supabase.from('usage_events').insert({
           user_id:       user.value.id,
           event_type:    'question',
           tokens_input:  tokensIn,
           tokens_output: tokensOut,
           emotion:       emotion?.emotion ?? null,
-        }).catch(() => {})
+        })).catch(() => {})
       }
 
       return { result: finalResult }

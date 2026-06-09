@@ -1,26 +1,23 @@
 import { supabase } from '@/services/supabase'
 import { encrypt, hashPassword } from '@/services/crypto.service'
 
-export async function createDiary({ name = 'Mi Diario', password }) {
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error('Debes iniciar sesión para crear tu diario.')
+export async function createDiary({ name = 'Mi Diario', password, userId }) {
+  if (!userId) throw new Error('Debes iniciar sesión para crear tu diario.')
   const { data, error } = await supabase
     .from('diaries')
-    .insert({ name, password_hash: hashPassword(password), user_id: user.id })
+    .insert({ name, password_hash: hashPassword(password), user_id: userId })
     .select()
     .single()
   if (error) throw new Error(error.message)
-  localStorage.setItem('rhema_diary_id', data.id)
   return data
 }
 
-export async function findDiaryByUser() {
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return null
+export async function findDiaryByUser(userId) {
+  if (!userId) return null
   const { data, error } = await supabase
     .from('diaries')
     .select('id')
-    .eq('user_id', user.id)
+    .eq('user_id', userId)
     .order('created_at', { ascending: true })
     .limit(1)
   if (error || !data?.length) return null
@@ -76,9 +73,10 @@ export async function getEntries(diaryId, filters = {}) {
     .select('id, title, emotion, category, intensity, themes, verses, narrative, content_encrypted, entry_date, created_at')
     .eq('diary_id', diaryId)
     .order('entry_date', { ascending: false })
-  if (filters.emotion) query = query.eq('emotion', filters.emotion)
-  if (filters.startDate) query = query.gte('entry_date', filters.startDate)
-  if (filters.endDate) query = query.lte('entry_date', filters.endDate)
+    .order('created_at', { ascending: false })
+  if (filters.emotion)    query = query.eq('emotion', filters.emotion)
+  if (filters.startDate)  query = query.gte('entry_date', filters.startDate)
+  if (filters.endDate)    query = query.lte('entry_date', filters.endDate)
   const { data, error } = await query
   if (error) throw new Error(error.message)
   return data ?? []
@@ -99,7 +97,7 @@ export async function getEntriesByRange(diaryId, range = 'month') {
   }
 
   const startStr = startDate.toISOString().split('T')[0]
-  const endStr = now.toISOString().split('T')[0]
+  const endStr   = now.toISOString().split('T')[0]
 
   const { data, error } = await supabase
     .from('entries')

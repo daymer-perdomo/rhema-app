@@ -1,63 +1,33 @@
-import { ref, computed } from 'vue'
-import { createDiary, getEntries, saveEntry, verifyPassword, findDiaryByUser } from '@/services/diary.service'
-import { supabase } from '@/services/supabase'
-
-const diaryId = ref(localStorage.getItem('rhema_diary_id') || null)
-const hasDiary = computed(() => !!diaryId.value)
-const entries = ref([])
-const loading = ref(false)
+import { storeToRefs } from 'pinia'
+import { useDiaryStore } from '@/stores/useDiaryStore'
+import { useAuthStore } from '@/stores/useAuthStore'
 
 export function useDiary() {
-  async function create(name, password) {
-    loading.value = true
-    try {
-      const diary = await createDiary({ name, password })
-      diaryId.value = diary.id
-    } finally {
-      loading.value = false
-    }
-  }
+  const store     = useDiaryStore()
+  const authStore = useAuthStore()
+  const { diaryId, hasDiary, entries, loading } = storeToRefs(store)
 
-  async function loadEntries(filters) {
-    if (!diaryId.value) return
-    loading.value = true
-    try {
-      entries.value = await getEntries(diaryId.value, filters)
-    } catch {
-      entries.value = []
-    } finally {
-      loading.value = false
-    }
+  async function create(name, password) {
+    return store.create(authStore.user?.id, name, password)
   }
 
   async function saveNewEntry(data) {
-    if (!diaryId.value) return
-    const entry = await saveEntry({ diaryId: diaryId.value, ...data })
-    await loadEntries()
-    // Log diary save usage event (fire-and-forget)
-    const { data: { user } } = await supabase.auth.getUser()
-    if (user) {
-      supabase.from('usage_events').insert({
-        user_id:    user.id,
-        event_type: 'diary_save',
-        emotion:    data.emotionContext?.emotion ?? null,
-      }).catch(() => {})
-    }
-    return entry
-  }
-
-  async function verify(password) {
-    if (!diaryId.value) return false
-    return verifyPassword(diaryId.value, password)
+    return store.saveNewEntry(authStore.user?.id, data)
   }
 
   async function initDiary() {
-    const found = await findDiaryByUser()
-    if (found) {
-      diaryId.value = found.id
-      localStorage.setItem('rhema_diary_id', found.id)
-    }
+    return store.initDiary(authStore.user?.id)
   }
 
-  return { diaryId, hasDiary, entries, loading, create, loadEntries, saveNewEntry, verify, initDiary }
+  return {
+    diaryId,
+    hasDiary,
+    entries,
+    loading,
+    create,
+    loadEntries: store.loadEntries,
+    saveNewEntry,
+    verify:      store.verify,
+    initDiary,
+  }
 }

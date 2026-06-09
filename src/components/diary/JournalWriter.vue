@@ -4,22 +4,27 @@ import { X, Feather } from '@lucide/vue'
 import { detectEmotion, searchVerses, generateWord } from '@/services/rhema.service'
 import { useDiary } from '@/composables/useDiary'
 import { useSession } from '@/composables/useSession'
-import PasswordGate from './PasswordGate.vue'
+import { useProfile } from '@/composables/useProfile'
+import PasswordGate      from './PasswordGate.vue'
+import NarrativeResponse from '@/components/bible/NarrativeResponse.vue'
 
 const emit = defineEmits(['saved'])
 const { saveNewEntry } = useDiary()
 const { sessionPassword, setPassword } = useSession()
+const { displayName } = useProfile()
 
 // ─── State ────────────────────────────────────────────────────────────────────
-const mode       = ref('idle')   // idle | writing | processing
-const titleEl    = ref(null)
-const bodyEl     = ref(null)
-const overlayRef = ref(null)
-const titleText  = ref('')
-const bodyText   = ref('')
-const charCount  = ref(0)
-const showGate   = ref(false)
-const errorMsg   = ref('')
+const mode        = ref('idle')   // idle | writing | processing | result
+const titleEl     = ref(null)
+const bodyEl      = ref(null)
+const overlayRef  = ref(null)
+const titleText   = ref('')
+const bodyText    = ref('')
+const charCount   = ref(0)
+const showGate    = ref(false)
+const errorMsg    = ref('')
+const resultWord  = ref(null)
+const resultDate  = ref('')
 
 // ─── Computed ─────────────────────────────────────────────────────────────────
 const show         = computed(() => mode.value !== 'idle')
@@ -51,13 +56,19 @@ function close() {
   mode.value = 'idle'
 }
 
+function closeResult() {
+  mode.value = 'idle'
+}
+
 function afterLeave() {
   if (titleEl.value) titleEl.value.innerHTML = ''
   if (bodyEl.value)  bodyEl.value.innerHTML  = ''
-  titleText.value = ''
-  bodyText.value  = ''
-  charCount.value = 0
-  errorMsg.value  = ''
+  titleText.value  = ''
+  bodyText.value   = ''
+  charCount.value  = 0
+  errorMsg.value   = ''
+  resultWord.value = null
+  resultDate.value = ''
 }
 
 // ─── Input handlers ───────────────────────────────────────────────────────────
@@ -101,7 +112,7 @@ async function onPassword(password) {
       errorMsg.value = 'No encontré versículos. Intenta con otras palabras.'; mode.value = 'writing'; return
     }
 
-    const word = await generateWord(bodyText.value, verses, emotion)
+    const word = await generateWord(bodyText.value, verses, emotion, displayName.value || undefined)
     if (word.crisis) {
       errorMsg.value = word.message ?? CRISIS; mode.value = 'writing'; return
     }
@@ -115,7 +126,9 @@ async function onPassword(password) {
       password,
     })
 
-    mode.value = 'idle'
+    resultWord.value = word
+    resultDate.value = today.value
+    mode.value = 'result'
     emit('saved')
   } catch (err) {
     errorMsg.value = err.message ?? 'Ocurrió un error. Inténtalo de nuevo.'
@@ -126,8 +139,10 @@ async function onPassword(password) {
 // ─── Keyboard ─────────────────────────────────────────────────────────────────
 function onKeydown(e) {
   if (mode.value === 'idle') return
-  if (e.key === 'Escape' && mode.value === 'writing') {
-    e.preventDefault(); close()
+  if (e.key === 'Escape') {
+    e.preventDefault()
+    if (mode.value === 'writing') close()
+    if (mode.value === 'result')  closeResult()
   }
   if ((e.metaKey || e.ctrlKey) && e.key === 'Enter' && mode.value === 'writing') {
     e.preventDefault(); seal()
@@ -168,7 +183,7 @@ defineExpose({ open })
   <Transition name="jw" :duration="{ enter: 320, leave: 260 }" @after-leave="afterLeave">
     <div v-if="show" ref="overlayRef" class="jw-overlay">
 
-      <div class="jw-page">
+      <div class="jw-page" :class="{ 'is-result': mode === 'result' }">
 
         <!-- Processing overlay -->
         <Transition name="proc">
@@ -183,58 +198,93 @@ defineExpose({ open })
           </div>
         </Transition>
 
-        <!-- Page header -->
-        <div class="page-header">
-          <span class="page-ornament">✦</span>
-          <span class="page-date">{{ today }}</span>
-          <div class="page-divider" />
-        </div>
+        <!-- ── WRITING mode ──────────────────────────────────────────── -->
+        <template v-if="mode !== 'result'">
 
-        <!-- Title field -->
-        <div
-          ref="titleEl"
-          contenteditable="true"
-          class="title-field"
-          :class="{ 'is-empty': isTitleEmpty }"
-          data-placeholder="Título para este momento  (opcional)"
-          role="textbox"
-          aria-label="Título de la entrada"
-          @input="onTitleInput"
-          @keydown.enter.prevent
-        />
-
-        <!-- Body field -->
-        <div
-          ref="bodyEl"
-          contenteditable="true"
-          class="body-field"
-          :class="{ 'is-empty': isBodyEmpty }"
-          data-placeholder="Escribe lo que hay en tu corazón..."
-          role="textbox"
-          aria-label="Contenido de la entrada"
-          aria-multiline="true"
-          @input="onBodyInput"
-        />
-
-        <!-- Error -->
-        <p v-if="errorMsg" class="err-msg">{{ errorMsg }}</p>
-
-        <!-- Footer -->
-        <div class="page-footer">
-          <div class="footer-left">
-            <button class="close-btn" :disabled="mode === 'processing'" @click="close" aria-label="Cerrar">
-              <X :size="15" />
-            </button>
-            <span v-if="wordCount > 0" class="word-count">{{ wordCount }} {{ wordCount === 1 ? 'palabra' : 'palabras' }}</span>
+          <!-- Page header -->
+          <div class="page-header">
+            <span class="page-ornament">✦</span>
+            <span class="page-date">{{ today }}</span>
+            <div class="page-divider" />
           </div>
 
-          <Transition name="seal">
-            <button v-if="showSeal" class="seal-btn" :disabled="mode === 'processing'" @click="seal">
-              <Feather :size="13" />
-              <span>Sellar entrada</span>
-            </button>
-          </Transition>
-        </div>
+          <!-- Title field -->
+          <div
+            ref="titleEl"
+            contenteditable="true"
+            class="title-field"
+            :class="{ 'is-empty': isTitleEmpty }"
+            data-placeholder="Título para este momento  (opcional)"
+            role="textbox"
+            aria-label="Título de la entrada"
+            @input="onTitleInput"
+            @keydown.enter.prevent
+          />
+
+          <!-- Body field -->
+          <div
+            ref="bodyEl"
+            contenteditable="true"
+            class="body-field"
+            :class="{ 'is-empty': isBodyEmpty }"
+            data-placeholder="Escribe lo que hay en tu corazón..."
+            role="textbox"
+            aria-label="Contenido de la entrada"
+            aria-multiline="true"
+            @input="onBodyInput"
+          />
+
+          <!-- Error -->
+          <p v-if="errorMsg" class="err-msg">{{ errorMsg }}</p>
+
+          <!-- Footer -->
+          <div class="page-footer">
+            <div class="footer-left">
+              <button class="close-btn" :disabled="mode === 'processing'" @click="close" aria-label="Cerrar">
+                <X :size="15" />
+              </button>
+              <span v-if="wordCount > 0" class="word-count">{{ wordCount }} {{ wordCount === 1 ? 'palabra' : 'palabras' }}</span>
+            </div>
+
+            <Transition name="seal">
+              <button v-if="showSeal" class="seal-btn" :disabled="mode === 'processing'" @click="seal">
+                <Feather :size="13" />
+                <span>Sellar entrada</span>
+              </button>
+            </Transition>
+          </div>
+
+        </template>
+
+        <!-- ── RESULT mode ───────────────────────────────────────────── -->
+        <Transition name="result-in">
+          <div v-if="mode === 'result' && resultWord" class="result-view">
+
+            <div class="result-header">
+              <span class="result-ornament">✦</span>
+              <span class="result-date">{{ resultDate }}</span>
+              <div class="result-divider" />
+            </div>
+
+            <div class="result-scroll">
+              <NarrativeResponse
+                :intro="resultWord.intro"
+                :cards="resultWord.cards ?? []"
+                :closing="resultWord.closing"
+                :show-save="false"
+                :show-reset="false"
+              />
+            </div>
+
+            <div class="result-footer">
+              <span class="result-saved">✦ Sellado y guardado</span>
+              <button class="close-btn" @click="closeResult" aria-label="Cerrar">
+                <X :size="15" />
+              </button>
+            </div>
+
+          </div>
+        </Transition>
 
       </div>
     </div>
@@ -284,8 +334,17 @@ defineExpose({ open })
   flex-direction: column;
 }
 
-/* Subtle left margin line */
-.jw-page::before {
+/* Result mode: no left margin line, allow taller */
+.jw-page.is-result {
+  min-height: auto;
+  max-height: 88vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Subtle left margin line — only while writing */
+.jw-page:not(.is-result)::before {
   content: '';
   position: absolute;
   top: 3.5rem;
@@ -315,7 +374,10 @@ defineExpose({ open })
     border-right: none;
     padding: 2rem 1.25rem 1.5rem 1.75rem;
   }
-  .jw-page::before {
+  .jw-page.is-result {
+    max-height: 100dvh;
+  }
+  .jw-page:not(.is-result)::before {
     top: 3rem;
     bottom: 2.5rem;
     left: 1.25rem;
@@ -556,10 +618,87 @@ defineExpose({ open })
 }
 .seal-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
-/* ─── iOS: prevent zoom on focus (contenteditable with font < 16px) ──────────── */
+/* ─── iOS: prevent zoom ──────────────────────────────────────────────────────── */
 @media (max-width: 1023px) {
   .title-field { font-size: 16px; }
   .body-field  { font-size: 18px; line-height: 2rem; }
+}
+
+/* ─── Result view ────────────────────────────────────────────────────────────── */
+.result-view {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.result-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  margin-bottom: 1.5rem;
+  flex-shrink: 0;
+}
+
+.result-ornament {
+  font-size: 0.75rem;
+  color: var(--color-accent);
+  opacity: 0.5;
+  letter-spacing: 0.2em;
+  animation: proc-breathe 4s ease-in-out infinite;
+}
+
+.result-date {
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--color-text-muted);
+  opacity: 0.65;
+}
+
+.result-divider {
+  width: 44px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(225,237,224,0.12), transparent);
+  margin-top: 0.25rem;
+}
+
+.result-scroll {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1.75rem;
+  padding-right: 0.25rem;
+  padding-bottom: 0.5rem;
+
+  /* thin scrollbar */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(225,237,224,0.1) transparent;
+}
+.result-scroll::-webkit-scrollbar { width: 4px; }
+.result-scroll::-webkit-scrollbar-track { background: transparent; }
+.result-scroll::-webkit-scrollbar-thumb { background: rgba(225,237,224,0.12); border-radius: 2px; }
+
+
+.result-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 1.25rem;
+  padding-top: 0.875rem;
+  border-top: 1px solid rgba(225, 237, 224, 0.06);
+  flex-shrink: 0;
+}
+
+.result-saved {
+  font-size: 0.6875rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-accent);
+  opacity: 0.45;
 }
 
 /* ─── Overlay transition ─────────────────────────────────────────────────────── */
@@ -591,4 +730,8 @@ defineExpose({ open })
 .proc-leave-active { transition: opacity 200ms ease; }
 .proc-enter-from,
 .proc-leave-to     { opacity: 0; }
+
+/* Result content appear */
+.result-in-enter-active { transition: opacity 350ms ease 120ms, transform 350ms ease 120ms; }
+.result-in-enter-from   { opacity: 0; transform: translateY(8px); }
 </style>

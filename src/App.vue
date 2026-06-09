@@ -1,23 +1,32 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, watch, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
-import { useAuth } from '@/composables/useAuth'
+import { useAuthStore }    from '@/stores/useAuthStore'
+import { useProfileStore } from '@/stores/useProfileStore'
 import AppSidebar        from '@/components/ui/AppSidebar.vue'
 import AppLoader         from '@/components/ui/AppLoader.vue'
 import PwaInstallPrompt  from '@/components/ui/PwaInstallPrompt.vue'
 
-const route  = useRoute()
-const { init } = useAuth()
+const route        = useRoute()
+const authStore    = useAuthStore()
+const profileStore = useProfileStore()
 
-const appReady  = ref(false)
+const appReady = ref(false)
+
+watch(() => authStore.user, (user, prevUser) => {
+  if (user) profileStore.load(user.id)
+  else profileStore.clear(prevUser?.id)
+})
 
 onMounted(async () => {
   try {
     await Promise.all([
       document.fonts.ready,
-      init(),
+      authStore.init(),
       new Promise(resolve => setTimeout(resolve, 1200)),
     ])
+    // Explicit load for the initial user set during init (watch fires on change, not initial set)
+    if (authStore.user) profileStore.load(authStore.user.id)
   } catch (err) {
     console.warn('[Rhema] Init warning:', err)
     await new Promise(resolve => setTimeout(resolve, 3000))

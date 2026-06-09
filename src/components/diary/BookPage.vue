@@ -5,6 +5,7 @@ const props = defineProps({
   entry:    { type: Object,  required: true },
   index:    { type: Number,  required: true },
   isActive: { type: Boolean, default: false },
+  isLatest: { type: Boolean, default: false },
 })
 defineEmits(['open'])
 
@@ -28,7 +29,6 @@ const EMOTION_COLORS = {
   vergüenza:    '#8a5a70',
 }
 
-// RGB equivalents for rgba() usage in CSS
 const EMOTION_RGB = {
   tristeza:     '90,122,176',
   miedo:        '122,90,159',
@@ -59,11 +59,27 @@ const EMOTION_ICONS = {
   vergüenza:    '😳',
 }
 
-const h     = computed(() => HEIGHTS[props.index % HEIGHTS.length])
-const w     = computed(() => WIDTHS[props.index % WIDTHS.length])
-const color = computed(() => EMOTION_COLORS[props.entry.emotion] ?? '#6a7a8a')
-const rgb   = computed(() => EMOTION_RGB[props.entry.emotion]    ?? '106,122,138')
-const icon  = computed(() => EMOTION_ICONS[props.entry.emotion]  ?? '✦')
+const EMOTION_LABELS = {
+  tristeza:     'Tristeza',
+  miedo:        'Miedo',
+  ansiedad:     'Ansiedad',
+  soledad:      'Soledad',
+  ira:          'Ira',
+  culpa:        'Culpa',
+  duda_de_fe:   'Duda de fe',
+  gratitud:     'Gratitud',
+  paz:          'Paz',
+  desesperanza: 'Desesperanza',
+  confusión:    'Confusión',
+  vergüenza:    'Vergüenza',
+}
+
+const h            = computed(() => HEIGHTS[props.index % HEIGHTS.length])
+const w            = computed(() => WIDTHS[props.index % WIDTHS.length])
+const color        = computed(() => EMOTION_COLORS[props.entry.emotion] ?? '#6a7a8a')
+const rgb          = computed(() => EMOTION_RGB[props.entry.emotion]    ?? '106,122,138')
+const icon         = computed(() => EMOTION_ICONS[props.entry.emotion]  ?? '✦')
+const emotionLabel = computed(() => EMOTION_LABELS[props.entry.emotion] ?? '')
 
 const shortDate = computed(() => {
   if (!props.entry.entry_date) return ''
@@ -83,7 +99,7 @@ const spineStyle = computed(() => ({
 <template>
   <article
     class="book-spine"
-    :class="{ 'is-active': isActive }"
+    :class="{ 'is-active': isActive, 'is-latest': isLatest }"
     :data-entry-id="entry.id"
     :style="spineStyle"
     :title="entry.title || 'Entrada del día'"
@@ -103,16 +119,16 @@ const spineStyle = computed(() => ({
       <span class="spine-ornament" aria-hidden="true">✦</span>
       <span class="spine-date">{{ shortDate }}</span>
     </footer>
+
+    <!-- emotion label — visible on hover for non-latest -->
+    <div v-if="emotionLabel && !isLatest" class="emotion-reveal">
+      <span class="emotion-reveal-text">{{ emotionLabel }}</span>
+    </div>
   </article>
 </template>
 
 <style scoped>
-/* ── Book spine ─────────────────────────────────────────────────────────────
-   Left border  = binding (pure emotion color)
-   Background   = emotion color bleeds from binding into dark cloth
-   ::before     = subtle cloth-weave texture overlay
-   ::after      = top-light reflection (ambient sheen)
-   ──────────────────────────────────────────────────────────────────────── */
+/* ── Book spine ──────────────────────────────────────────────────────────────── */
 .book-spine {
   position: relative;
   width:    var(--bw, 57px);
@@ -121,15 +137,12 @@ const spineStyle = computed(() => ({
   cursor: pointer;
   overflow: hidden;
 
-  /* Material layers (bottom to top) */
   background:
-    /* cloth-weave horizontal grain */
     repeating-linear-gradient(
       0deg,
       transparent 0px, transparent 3px,
       rgba(0, 0, 0, 0.055) 3px, rgba(0, 0, 0, 0.055) 4px
     ),
-    /* emotion color bleeds from binding */
     linear-gradient(
       to right,
       rgba(var(--er), 0.32) 0%,
@@ -137,23 +150,16 @@ const spineStyle = computed(() => ({
       rgba(var(--er), 0.02) 75%,
       transparent 100%
     ),
-    /* base dark cloth */
     linear-gradient(180deg, #252525 0%, #1c1c1c 50%, #151515 100%);
 
-  /* Binding strip — left edge */
   border-left: 7px solid var(--ec);
   border-radius: 1px 4px 4px 1px;
 
-  /* 3-D depth */
   box-shadow:
-    /* binding inner glow */
     inset 12px 0 22px rgba(var(--er), 0.28),
-    /* right-edge page block darkness */
     inset -2px 0 4px rgba(0, 0, 0, 0.55),
-    /* physical depth shadows */
     4px 0 14px rgba(0, 0, 0, 0.92),
     2px 0 5px  rgba(0, 0, 0, 0.7),
-    /* subtle emotion aura */
     -1px 0 8px rgba(var(--er), 0.15);
 
   display: flex;
@@ -162,22 +168,20 @@ const spineStyle = computed(() => ({
   justify-content: space-between;
   padding: 10px 5px 9px;
 
-  /* Entrance animation */
   animation-name: book-rise;
   animation-duration: 420ms;
   animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
   animation-delay: var(--delay, 0ms);
   animation-fill-mode: both;
 
-  /* Hover transition */
   transition:
-    transform 240ms cubic-bezier(0.34, 1.56, 0.64, 1),
-    filter    240ms ease,
-    z-index   0ms;
+    transform  240ms cubic-bezier(0.34, 1.56, 0.64, 1),
+    filter     300ms ease,
+    z-index    0ms;
   z-index: 1;
 }
 
-/* Cloth-surface sheen — top ambient reflection */
+/* Cloth-surface sheen */
 .book-spine::after {
   content: '';
   position: absolute;
@@ -190,9 +194,21 @@ const spineStyle = computed(() => ({
     transparent 100%
   );
   pointer-events: none;
+  z-index: 1;
 }
 
-/* ── Hover / active ─────────────────────────────────────────────────────── */
+/* ── Non-latest: desaturated & dimmed ────────────────────────────────────────── */
+.book-spine:not(.is-latest) {
+  filter: grayscale(0.88) brightness(0.62);
+}
+
+/* ── Latest: full color, subtle pulse on entry ───────────────────────────────── */
+.book-spine.is-latest {
+  filter: none;
+  z-index: 2;
+}
+
+/* ── Hover / active: reveal color & lift ─────────────────────────────────────── */
 .book-spine:hover,
 .book-spine.is-active {
   transform: translateY(-20px) rotate(-0.8deg);
@@ -204,15 +220,50 @@ const spineStyle = computed(() => ({
     drop-shadow(0 8px 16px rgba(var(--er), 0.38));
 }
 
-/* ── Icon ───────────────────────────────────────────────────────────────── */
+/* ── Emotion reveal label (non-latest hover only) ────────────────────────────── */
+.emotion-reveal {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 6px;
+  background: linear-gradient(to top, rgba(0,0,0,0.72) 0%, transparent 100%);
+  opacity: 0;
+  transition: opacity 200ms ease;
+  z-index: 3;
+  pointer-events: none;
+}
+
+.emotion-reveal-text {
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  font-size: 0.42rem;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ec);
+  white-space: nowrap;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.8);
+}
+
+.book-spine:hover .emotion-reveal {
+  opacity: 1;
+}
+
+/* ── Icon ───────────────────────────────────────────────────────────────────── */
 .spine-icon {
   font-size: 16px;
   line-height: 1;
   flex-shrink: 0;
   filter: drop-shadow(0 1px 3px rgba(0,0,0,0.5));
+  position: relative;
+  z-index: 2;
 }
 
-/* ── Ornamental rule ────────────────────────────────────────────────────── */
+/* ── Ornamental rule ────────────────────────────────────────────────────────── */
 .spine-rule {
   width: 70%;
   height: 1px;
@@ -225,9 +276,11 @@ const spineStyle = computed(() => ({
   );
   flex-shrink: 0;
   margin: 2px 0;
+  position: relative;
+  z-index: 2;
 }
 
-/* ── Title — vertical, bottom-to-top ───────────────────────────────────── */
+/* ── Title — vertical ───────────────────────────────────────────────────────── */
 .spine-title {
   writing-mode: vertical-rl;
   transform: rotate(180deg);
@@ -237,28 +290,29 @@ const spineStyle = computed(() => ({
   font-size: 0.72rem;
   font-weight: 500;
   letter-spacing: 0.02em;
-
-  /* warm ivory with emotion glow */
   color: rgba(240, 232, 216, 0.92);
   text-shadow:
     0 1px 4px rgba(0, 0, 0, 0.7),
     0 0 10px rgba(var(--er), 0.22);
-
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   max-height: 96px;
   text-align: center;
   padding: 4px 0;
+  position: relative;
+  z-index: 2;
 }
 
-/* ── Footer ─────────────────────────────────────────────────────────────── */
+/* ── Footer ─────────────────────────────────────────────────────────────────── */
 .spine-footer {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 3px;
   flex-shrink: 0;
+  position: relative;
+  z-index: 2;
 }
 
 .spine-ornament {
@@ -278,17 +332,15 @@ const spineStyle = computed(() => ({
   line-height: 1;
 }
 
-/* ── Entrance animation ─────────────────────────────────────────────────── */
+/* ── Entrance animation ─────────────────────────────────────────────────────── */
 @keyframes book-rise {
   from {
     opacity: 0;
     transform: translateY(24px) scaleY(0.92);
-    filter: brightness(0.6);
   }
   to {
     opacity: 1;
     transform: translateY(0) scaleY(1);
-    filter: brightness(1);
   }
 }
 </style>

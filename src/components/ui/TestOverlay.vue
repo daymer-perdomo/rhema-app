@@ -143,8 +143,8 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  overflow: hidden;
-  padding: 1rem;
+  overflow-y: auto;
+  padding: 1.5rem 1rem;
 }
 
 /* ── Partículas ── */
@@ -319,5 +319,61 @@ onUnmounted(() => {
 }
 .signature strong {
   color: var(--color-text-soft);
+}
+
+/* ── Mobile ── */
+@media (max-width: 600px) {
+  .overlay {
+    align-items: flex-start;
+    padding: 1rem 0.75rem;
+  }
+
+  .card {
+    padding: 1.5rem 1.1rem;
+    border-radius: 12px;
+    margin: auto 0;
+  }
+
+  .icon-wrap {
+    margin-bottom: 0.75rem;
+  }
+  .icon-ring {
+    width: 40px;
+    height: 40px;
+  }
+  .icon-text {
+    font-size: 1.2rem;
+  }
+
+  .title {
+    font-size: 1.35rem;
+    margin-bottom: 0.35rem;
+  }
+
+  .subtitle {
+    font-size: 0.8rem;
+    margin-bottom: 1rem;
+  }
+
+  .message {
+    font-size: 0.8rem;
+    line-height: 1.6;
+    gap: 0.6rem;
+    margin-bottom: 1.25rem;
+    padding-left: 0.75rem;
+  }
+
+  .stats {
+    padding: 0.75rem 1rem;
+    margin-bottom: 1.25rem;
+    gap: 0.45rem;
+  }
+  .stat-row {
+    font-size: 0.75rem;
+  }
+
+  .signature p {
+    font-size: 0.72rem;
+  }
 }
 </style>

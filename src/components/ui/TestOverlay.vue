@@ -325,55 +325,55 @@ onUnmounted(() => {
 @media (max-width: 600px) {
   .overlay {
     align-items: flex-start;
-    padding: 1rem 0.75rem;
+    padding: 0.75rem 0.6rem;
   }
 
   .card {
-    padding: 1.5rem 1.1rem;
+    padding: 1.1rem 0.9rem;
     border-radius: 12px;
     margin: auto 0;
   }
 
   .icon-wrap {
-    margin-bottom: 0.75rem;
+    margin-bottom: 0.5rem;
   }
   .icon-ring {
-    width: 40px;
-    height: 40px;
+    width: 34px;
+    height: 34px;
   }
   .icon-text {
-    font-size: 1.2rem;
+    font-size: 1rem;
   }
 
   .title {
-    font-size: 1.35rem;
-    margin-bottom: 0.35rem;
+    font-size: 1.15rem;
+    margin-bottom: 0.25rem;
   }
 
   .subtitle {
-    font-size: 0.8rem;
-    margin-bottom: 1rem;
+    font-size: 0.72rem;
+    margin-bottom: 0.75rem;
   }
 
   .message {
-    font-size: 0.8rem;
-    line-height: 1.6;
-    gap: 0.6rem;
-    margin-bottom: 1.25rem;
-    padding-left: 0.75rem;
+    font-size: 0.73rem;
+    line-height: 1.55;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    padding-left: 0.65rem;
   }
 
   .stats {
-    padding: 0.75rem 1rem;
-    margin-bottom: 1.25rem;
-    gap: 0.45rem;
+    padding: 0.6rem 0.85rem;
+    margin-bottom: 1rem;
+    gap: 0.35rem;
   }
   .stat-row {
-    font-size: 0.75rem;
+    font-size: 0.7rem;
   }
 
   .signature p {
-    font-size: 0.72rem;
+    font-size: 0.66rem;
   }
 }
 </style>

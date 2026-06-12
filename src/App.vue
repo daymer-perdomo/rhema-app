@@ -7,6 +7,7 @@ import { useDiaryStore }   from '@/stores/useDiaryStore'
 import AppSidebar        from '@/components/ui/AppSidebar.vue'
 import AppLoader         from '@/components/ui/AppLoader.vue'
 import PwaInstallPrompt  from '@/components/ui/PwaInstallPrompt.vue'
+import TestOverlay       from '@/components/ui/TestOverlay.vue'
 
 const route        = useRoute()
 const authStore    = useAuthStore()
@@ -47,6 +48,8 @@ onMounted(async () => {
 </script>
 
 <template>
+  <TestOverlay />
+
   <Transition name="loader">
     <AppLoader v-if="!appReady" />
   </Transition>
